@@ -1,4 +1,4 @@
-package myrobot;
+package org.robot;
 
 import java.awt.Point;
 
@@ -7,9 +7,9 @@ import robocode.ScannedRobotEvent;
 
 public class Enemy implements Comparable{
 
-	private String nameEnemy;
-	private double xPosition;
-	private double yPosition;
+	private String name;
+	private double x;
+	private double y;
 	private double bearing;
 	private double velocity;
 	private double distance;
@@ -17,12 +17,54 @@ public class Enemy implements Comparable{
 	private double energy;
 	private double bearingRadians;
 	private double headingRadians;
+	private long lastUpdated;
+	private boolean dead;
 	
+	public boolean isDead() {
+		return dead;
+	}
+
+	public void setDead(boolean dead) {
+		this.dead = dead;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public double getX() {
+		return x;
+	}
+
+	public void setX(double x) {
+		this.x = x;
+	}
+
+	public double getY() {
+		return y;
+	}
+
+	public void setY(double y) {
+		this.y = y;
+	}
+
+	public long getLastUpdated() {
+		return lastUpdated;
+	}
+
+	public void setLastUpdated(long lastUpdated) {
+		this.lastUpdated = lastUpdated;
+	}
+
 	public Enemy() {
 		
-		nameEnemy="";
-		xPosition=0;
-		yPosition=0;
+		name="";
+		x=0;
+		y=0;
 		bearing=0.0;
 		velocity=0.0;
 		distance=0.0;
@@ -35,7 +77,7 @@ public class Enemy implements Comparable{
 	
 	public Enemy(ScannedRobotEvent event,AdvancedRobot robot){
 		
-		this.nameEnemy=event.getName();
+		this.name=event.getName();
 		updateEnemy(event, robot);
 	}
 	
@@ -49,38 +91,15 @@ public class Enemy implements Comparable{
 		this.headingRadians=event.getHeadingRadians();
 		this.bearingRadians=event.getBearingRadians();
 		double absBearing=event.getBearingRadians()+robot.getHeadingRadians();
-		xPosition=robot.getX()+Math.sin(absBearing)*distance;
-		yPosition=robot.getY()+Math.cos(absBearing)*distance;
+		x=robot.getX()+Math.sin(absBearing)*distance;
+		y=robot.getY()+Math.cos(absBearing)*distance;
 		
 	}
 	
 	public Point getPosition(){
-		return new Point((int)xPosition,(int)yPosition);
+		return new Point((int)x,(int)y);
 	} 
 
-	public String getNameEnemy() {
-		return nameEnemy;
-	}
-
-	public void setNameEnemy(String nameEnemy) {
-		this.nameEnemy = nameEnemy;
-	}
-
-	public double getxPosition() {
-		return xPosition;
-	}
-
-	public void setxPosition(int xPosition) {
-		this.xPosition = xPosition;
-	}
-
-	public double getyPosition() {
-		return yPosition;
-	}
-
-	public void setyPosition(int yPosition) {
-		this.yPosition = yPosition;
-	}
 
 	public double getBearing() {
 		return bearing;
@@ -140,7 +159,7 @@ public class Enemy implements Comparable{
 	@Override
 	public int hashCode() {
 		
-		return nameEnemy.hashCode();
+		return name.hashCode();
 	}
 
 	@Override
@@ -148,7 +167,7 @@ public class Enemy implements Comparable{
 		
 			
 		    Enemy e=(Enemy) o;
-		    if(this.getNameEnemy().compareTo(e.getNameEnemy())==0)
+		    if(this.getName().compareTo(e.getName())==0)
 		    	return 0;
 			if(this.getDistance()>=e.getDistance())
 				return 1;
@@ -165,11 +184,11 @@ public class Enemy implements Comparable{
 		if(this.getClass()!=obj.getClass())
 			return false;
 		Enemy e=(Enemy) obj;
-		return getNameEnemy().equals(e.getNameEnemy());
+		return getName().equals(e.getName());
 	}
 	@Override
 	public String toString() {
 		
-		return nameEnemy;
+		return name;
 	}
 }

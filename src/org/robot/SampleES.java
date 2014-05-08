@@ -1,5 +1,6 @@
 package org.robot;
 
+	
 import robocode.AdvancedRobot;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;

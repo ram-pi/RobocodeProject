@@ -5,6 +5,7 @@ import org.pattern.radar.Radar;
 import org.pattern.shooting.Shooting;
 
 import robocode.AdvancedRobot;
+import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 
 public class Gargoyle extends AdvancedRobot {
@@ -15,6 +16,8 @@ public class Gargoyle extends AdvancedRobot {
 	public Gargoyle() {
 		radar = new Radar(this);
 		movement = new Movement(this);
+		shooting = new Shooting(this);
+		
 		radar.addObserver(movement);
 		radar.addObserver(shooting);
 	}
@@ -36,6 +39,12 @@ public class Gargoyle extends AdvancedRobot {
 			radar.doScan();
 			execute();
 		}
+	}
+	
+	@Override
+	public void onRobotDeath(RobotDeathEvent event) {
+		// TODO let radar consume the event
+		super.onRobotDeath(event);
 	}
 }
 	

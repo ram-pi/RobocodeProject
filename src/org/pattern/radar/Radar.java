@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Observable;
 
 import org.pattern.utils.VersionedDouble;
+import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
 import robocode.ScannedRobotEvent;
@@ -13,32 +14,35 @@ import robocode.ScannedRobotEvent;
 public class Radar extends Observable{
 
 	private AdvancedRobot robot;
-	private Map<String, VersionedDouble> energies;
-	private Map<String, Point> positions;
 	
-	private String EnemyRobot;
+	private Map<String, Enemy> enemies;
+//	
+//	private Map<String, VersionedDouble> energies;
+//	private Map<String, Point> positions;
+	
+	private Enemy lockedEnemy;
 	
 	static long TIME_THRESHOLD = 1000;
 	
 	
 	public Radar(AdvancedRobot robot) {
-		energies = new HashMap<>();
-		positions = new HashMap<>();
+		enemies = new HashMap<>();
 		this.robot = robot;
 	}
 	
 	public void doScan() {
 		
-		if(EnemyRobot == null) {
+		if(lockedEnemy == null || lockedEnemy.isDead()) {
 			robot.setTurnRadarLeft(45);
 			return;
 		}
 
+		lockedEnemy = enemies.get(lockedEnemy.getName());
 		
-		double tan = ((double) positions.get(EnemyRobot).x - robot.getX())/((double)positions.get(EnemyRobot).y - robot.getY());
+		double tan = ((double) lockedEnemy.getX() - robot.getX())/((double)lockedEnemy.getY() - robot.getY());
 		double bearing = Math.toDegrees(Math.atan(tan));
 		
-		if (positions.get(EnemyRobot).y < robot.getY()){
+		if (lockedEnemy.getY() < robot.getY()){
 			bearing =  bearing + 180;
 		}
 
@@ -69,27 +73,30 @@ public class Radar extends Observable{
 	
 	public void consumeScannedRobotEvent(ScannedRobotEvent event) {
 		
-		VersionedDouble lastSeenEnergy = energies.get(event.getName());
-		VersionedDouble currentEnergy = new VersionedDouble();
-		currentEnergy.value = event.getEnergy();
-		currentEnergy.time = robot.getTime();
+		Enemy scannedRobot = new Enemy(event, robot);
+		Enemy cachedRobot = enemies.get(event.getName());
 		
+		if (lockedEnemy == null) {
+			lockedEnemy = scannedRobot;
+		}
 		
-		if (lastSeenEnergy != null && currentEnergy.value < lastSeenEnergy.value) {
-			if (currentEnergy.time - lastSeenEnergy.time > TIME_THRESHOLD){}
+		if (cachedRobot == null) {	
+			setChanged();
+			notifyObservers(new UpdatedEnemiesListEvent(enemies));
+			enemies.put(scannedRobot.getName(), scannedRobot);
+			return;
+		}
+		
+		double lastEnergy = cachedRobot.getEnergy();
+		double currentEnergy = scannedRobot.getEnergy();
+	
+		if (robot.getTime() - cachedRobot.getLastUpdated() < TIME_THRESHOLD) {
 				GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
 				setChanged();
 				notifyObservers(gBulletFiredEvent);
 		}
 		
-		energies.put(event.getName(), currentEnergy);
-		
-		if (EnemyRobot == null)
-			EnemyRobot = event.getName();
-		
-		Point enemyPosition = calculateEnemyPosition(event);
-		
-		positions.put(EnemyRobot, enemyPosition);
+		enemies.put(cachedRobot.getName(), scannedRobot);
 
 	}
 
