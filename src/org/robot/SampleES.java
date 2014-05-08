@@ -18,7 +18,7 @@ public class SampleES extends AdvancedRobot {
 		
 		while(true) {
 			isNearWall();
-			turnRadarRight(360);
+			setTurnRadarRight(45);
 			move();
 			execute();
 		}
