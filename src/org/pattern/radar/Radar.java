@@ -9,6 +9,7 @@ import org.pattern.utils.VersionedDouble;
 import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
+import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 
 public class Radar extends Observable{
@@ -73,30 +74,41 @@ public class Radar extends Observable{
 	
 	public void consumeScannedRobotEvent(ScannedRobotEvent event) {
 		
-		Enemy scannedRobot = new Enemy(event, robot);
+		
 		Enemy cachedRobot = enemies.get(event.getName());
 		
-		if (lockedEnemy == null) {
-			lockedEnemy = scannedRobot;
-		}
-		
+
 		if (cachedRobot == null) {	
+			cachedRobot = new Enemy(event, robot);
+			
+			if (lockedEnemy == null) 
+				lockedEnemy = cachedRobot;
+			
+			enemies.put(lockedEnemy.getName(), cachedRobot);
 			setChanged();
 			notifyObservers(new UpdatedEnemiesListEvent(enemies));
-			enemies.put(scannedRobot.getName(), scannedRobot);
 			return;
 		}
 		
+		
+		
 		double lastEnergy = cachedRobot.getEnergy();
-		double currentEnergy = scannedRobot.getEnergy();
+		double currentEnergy = event.getEnergy();
 	
-		if (robot.getTime() - cachedRobot.getLastUpdated() < TIME_THRESHOLD) {
+		if (robot.getTime() - cachedRobot.getLastUpdated() < TIME_THRESHOLD && lastEnergy > currentEnergy) {
+			
 				GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
+				gBulletFiredEvent.setFiringRobot(new Enemy(event, robot));
+				gBulletFiredEvent.setEnergy(lastEnergy - currentEnergy);
+				gBulletFiredEvent.setVelocity(20 - 3 * (lastEnergy - currentEnergy));
+				gBulletFiredEvent.setFiringTime(robot.getTime());
 				setChanged();
 				notifyObservers(gBulletFiredEvent);
 		}
 		
-		enemies.put(cachedRobot.getName(), scannedRobot);
+		cachedRobot.updateEnemy(event, robot);
+		setChanged();
+		notifyObservers();
 
 	}
 
@@ -120,6 +132,12 @@ public class Radar extends Observable{
 		enemyPositionPoint.y = (int)robot.getY() + (int)(event.getDistance() * Math.cos(Math.toRadians(absBearing)));
 		
 		return enemyPositionPoint;
+	}
+
+	public void consumeRobotDeathEvent(RobotDeathEvent event) {
+		Enemy enemy = enemies.get(event.getName());
+		enemy.setDead(true);
+		
 	}
 
 }

@@ -72,6 +72,7 @@ public class Enemy implements Comparable{
 		energy=0.0;
 		headingRadians=0.0;
 		bearingRadians=0.0;	
+		dead = false;
 		
 	}
 	
@@ -93,7 +94,7 @@ public class Enemy implements Comparable{
 		double absBearing=event.getBearingRadians()+robot.getHeadingRadians();
 		x=robot.getX()+Math.sin(absBearing)*distance;
 		y=robot.getY()+Math.cos(absBearing)*distance;
-		
+		dead = false;
 	}
 	
 	public Point getPosition(){

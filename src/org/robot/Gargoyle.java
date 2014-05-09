@@ -1,5 +1,7 @@
 package org.robot;
 
+import java.awt.Graphics2D;
+
 import org.pattern.movement.Movement;
 import org.pattern.radar.Radar;
 import org.pattern.shooting.Shooting;
@@ -26,7 +28,7 @@ public class Gargoyle extends AdvancedRobot {
 	public void onScannedRobot(ScannedRobotEvent event) {
 		// TODO Auto-generated method stub
 		radar.consumeScannedRobotEvent(event);
-		fire(1.0);
+		
 	}
 	
 	@Override
@@ -43,8 +45,14 @@ public class Gargoyle extends AdvancedRobot {
 	
 	@Override
 	public void onRobotDeath(RobotDeathEvent event) {
-		// TODO let radar consume the event
-		super.onRobotDeath(event);
+		radar.consumeRobotDeathEvent(event);
+	}
+	
+	@Override
+	public void onPaint(Graphics2D g) {
+		// TODO Auto-generated method stub
+		super.onPaint(g);
+		movement.consumeOnPaintEvent(g);
 	}
 }
 	
