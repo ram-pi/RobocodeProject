@@ -36,7 +36,7 @@ public class Movement implements Observer{
 		for (GBulletFiredEvent bullet : bullets) {
    			double radius = bullet.getVelocity() * (robot.getTime() - bullet.getFiringTime());
    			
-   			/* the bullet is fired from cannon that is displaced from the center of the robot */
+   			/* the bullet is fired from cannon that is displaced 10px from the center of the robot */
    			radius += 10;
    			
    			g.drawArc((int)(bullet.getFiringRobot().getX() - radius), (int)(bullet.getFiringRobot().getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
