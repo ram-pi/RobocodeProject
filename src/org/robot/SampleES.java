@@ -22,6 +22,7 @@ public class SampleES extends AdvancedRobot {
 			setTurnRadarRight(45);
 			move();
 			execute();
+			System.out.println("Heading" + getHeading());
 		}
 	}
 	
@@ -34,11 +35,14 @@ public class SampleES extends AdvancedRobot {
 		squaringOff(enemy);
 		// Lock on enemy
 		setTurnRadarRight(getHeading() - getRadarHeading() + enemy.getBearing());
-		setTurnGunRight(getHeading() - getGunHeading() + enemy.getBearing());
+		//setTurnGunRight(getHeading() - getGunHeading() + enemy.getBearing());
+		double absoluteBearing = getHeading() + enemy.getBearing();
+		setTurnGunRight(absoluteBearing - getGunHeading());
 		if (shouldShot(enemy)) {
 			firingRight(enemy);
 			fire(1.0);
 		}
+		System.out.println("Bearing" + enemy.getBearing());
 		move();
 	}
 	

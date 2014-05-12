@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
 
-import org.pattern.utils.VersionedDouble;
 import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
@@ -137,7 +136,22 @@ public class Radar extends Observable{
 	public void consumeRobotDeathEvent(RobotDeathEvent event) {
 		Enemy enemy = enemies.get(event.getName());
 		enemy.setDead(true);
+	}
 		
+	public AdvancedRobot getRobot() {
+		return robot;
+	}
+
+	public Map<String, Enemy> getEnemies() {
+		return enemies;
+	}
+
+	public void setRobot(AdvancedRobot robot) {
+		this.robot = robot;
+	}
+
+	public void setEnemies(Map<String, Enemy> enemies) {
+		this.enemies = enemies;
 	}
 
 }

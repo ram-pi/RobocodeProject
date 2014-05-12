@@ -28,6 +28,7 @@ public class Gargoyle extends AdvancedRobot {
 	public void onScannedRobot(ScannedRobotEvent event) {
 		// TODO Auto-generated method stub
 		radar.consumeScannedRobotEvent(event);
+		shooting.doShooting(event);
 		
 	}
 	
@@ -53,6 +54,30 @@ public class Gargoyle extends AdvancedRobot {
 		// TODO Auto-generated method stub
 		super.onPaint(g);
 		movement.consumeOnPaintEvent(g);
+	}
+
+	public Radar getRadar() {
+		return radar;
+	}
+
+	public Movement getMovement() {
+		return movement;
+	}
+
+	public Shooting getShooting() {
+		return shooting;
+	}
+
+	public void setRadar(Radar radar) {
+		this.radar = radar;
+	}
+
+	public void setMovement(Movement movement) {
+		this.movement = movement;
+	}
+
+	public void setShooting(Shooting shooting) {
+		this.shooting = shooting;
 	}
 }
 	
