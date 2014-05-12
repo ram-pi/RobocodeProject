@@ -13,11 +13,10 @@ public class Shooting implements Observer {
 	private Enemy enemy;
 	private double bulletPower;
 	private ViewFinder sniper;
-	private LinearTargeting naiveShooter;
 
 	public Shooting(AdvancedRobot robot) {
 		this.robot = robot;
-		sniper = new ViewFinder(robot, null);
+		sniper = new ViewFinder(robot);
 	}
 
 	@Override
@@ -34,13 +33,10 @@ public class Shooting implements Observer {
 	public void doShooting(ScannedRobotEvent enemy) {
 		
 		sniper.setRobot(robot);
-		sniper.setEnemy(enemy);
-		// Set the gun in the direction of the enemy
-		//robot.setTurnGunRight(robot.getHeading() - robot.getGunHeading() + enemy.getBearing());
+		Enemy e = new Enemy(enemy, robot);
+		sniper.setPointToShot(e.getX(), e.getY());
 		if (shouldShot(enemy)) {
-			//sniper.moveGunInPredictedPosition();
-			//sniper.moveGunNaive();
-			sniper.moveGunWithLinearTargeting();
+			sniper.moveGunToPoint();
 			firingSettings(enemy);
 			robot.fire(this.bulletPower);
 		}

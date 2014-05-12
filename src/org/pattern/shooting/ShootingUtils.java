@@ -2,6 +2,8 @@ package org.pattern.shooting;
 
 import java.awt.geom.Point2D;
 
+import robocode.util.Utils;
+
 public class ShootingUtils {
 
 	public static double absoluteBearingBetweenTwoPoints(double x, double y, double xx, double yy) {
@@ -25,7 +27,7 @@ public class ShootingUtils {
 		return bearing;
 	}
 
-	// normalizes a bearing to between +180 and -180
+	/* normalizes a bearing to between +180 and -180 */
 	public static double normalizeBearing(double angle) {
 		while (angle >  180) angle -= 360;
 		while (angle < -180) angle += 360;
@@ -33,12 +35,20 @@ public class ShootingUtils {
 	}
 	
 	/* To avoid complete rotation of the gun */
-	public double fixAngle (double angle) {
+	public static double fixAngle (double angle) {
 		angle = angle%360;
 		if (angle < -180)
 			angle += 360;
 		if (angle > 180)
 			angle -= 360;
 		return angle;
+	}
+	
+	/* This function return the angle in degrees for rotate the gun for aiming a point */
+	public static double findAngle(double predictedX, double predictedY, double myX, double myY) {
+		double theta = Math.atan2(Math.toRadians(predictedY - myY), Math.toRadians(predictedX - myX));
+		theta = Math.PI/2 - theta;
+		theta = Math.toDegrees(theta);
+		return theta;
 	}
 }
