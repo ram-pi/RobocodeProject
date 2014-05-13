@@ -28,17 +28,13 @@ public class ProjectionTester extends AdvancedRobot {
 		projectionsList = new LinkedList<>();
 		Projection visualProjection = new Projection(new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), 1, getHeading());
 		
-		for (int i = 0; i < 5; i++) {
-			projectionsList.add(visualProjection.projectNextTick());
-		}
+		projectionsList.addAll(visualProjection.projectNextTicks(5));
 		
 		tickProjection lastBeforeTurning = projectionsList.get(projectionsList.size()-1);
 		
 		visualProjection = new Projection(lastBeforeTurning.getPosition(), lastBeforeTurning.getHeading(), lastBeforeTurning.getVelocity(), -1, lastBeforeTurning.getHeading()+20);
 		
-		for (int i = 0; i < 5; i++) {
-			projectionsList.add(visualProjection.projectNextTick());
-		}
+		projectionsList.addAll(visualProjection.projectNextTicks(30));
 		
 		long lastTime = -1;
 		while (true) {

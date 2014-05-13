@@ -162,4 +162,13 @@ public class Projection {
 		
 	}
 	
+	public List<tickProjection> projectNextTicks(int numTicks)	{
+		List<tickProjection> ret = new LinkedList<>();
+
+		for(int i=0; i < numTicks; i++){
+			ret.add(this.projectNextTick());
+		}
+
+		return ret;
+	}
 }
