@@ -7,6 +7,8 @@ import java.util.List;
 
 import org.pattern.utils.Utils;
 
+import robocode.Rules;
+
 public class Projection {
 	
 	public class tickProjection {
@@ -76,7 +78,7 @@ public class Projection {
 		firstProjection.setHeading(heading);
 		firstProjection.setPosition(position);
 		firstProjection.setVelocity(velocity);
-		firstProjection.setTick(getTick());
+		firstProjection.setTick(0);
 		
 		
 		projections.add(firstProjection);
@@ -104,22 +106,11 @@ public class Projection {
 		v = lastProjection.getVelocity();
 		
 		if (v == 0 || wantedDirection * v > 0) { 
-			a = wantedDirection * 1;
+			a = wantedDirection * Rules.ACCELERATION;
 		}
 		else {
-			a = wantedDirection * 2;
+			a = wantedDirection * Rules.DECELERATION;
 		}
-		
-		
-		// updating velocity
-		v += a;
-		
-		if (v > 8.)
-			v = 8.;
-		
-		if (v < -8.)
-			v = -8.;
-		
 		//updating heading
 		h = lastProjection.getHeading();
 		
@@ -131,8 +122,29 @@ public class Projection {
 			
 			h += turnRate * turningDir;
 		}
+		        
+				
+		// updating velocity
 		
+		//check if we change from dec to acc
+		double decTime = Math.abs(v)/2.0;
+		double accTime = (1 - decTime);
 		
+		if (v * wantedDirection < 0 && accTime > 0) {
+			v += wantedDirection * decTime * Rules.DECELERATION;
+			v += wantedDirection * accTime * Rules.ACCELERATION;
+		}
+		else {
+			v += a;
+		}
+		
+		if (v > 8.)
+			v = 8.;
+		
+		if (v < -8.)
+			v = -8.;
+		
+
 		//updating position
 		double hRad = Math.toRadians(h);
 		position = new Point2D.Double(lastProjection.getPosition().getX() + (v * Math.cos(Math.PI/2 - hRad)), lastProjection.getPosition().getY() + (v *Math.sin(Math.PI/2 - hRad)));

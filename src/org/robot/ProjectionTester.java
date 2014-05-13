@@ -18,14 +18,27 @@ public class ProjectionTester extends AdvancedRobot {
 	private tickProjection lastTickProjection;
 	
 	public ProjectionTester() {
-		
+
 	}
 
 	@Override
 	public void run() {
-		projectionsList = new LinkedList<>();
+
 		projection = new Projection(new Point2D.Double(getX(),getY()), getHeading(), getVelocity(), 1, getHeading());
+		projectionsList = new LinkedList<>();
+		Projection visualProjection = new Projection(new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), 1, getHeading());
 		
+		for (int i = 0; i < 5; i++) {
+			projectionsList.add(visualProjection.projectNextTick());
+		}
+		
+		tickProjection lastBeforeTurning = projectionsList.get(projectionsList.size()-1);
+		
+		visualProjection = new Projection(lastBeforeTurning.getPosition(), lastBeforeTurning.getHeading(), lastBeforeTurning.getVelocity(), -1, lastBeforeTurning.getHeading()+20);
+		
+		for (int i = 0; i < 5; i++) {
+			projectionsList.add(visualProjection.projectNextTick());
+		}
 		
 		long lastTime = -1;
 		while (true) {
@@ -38,22 +51,24 @@ public class ProjectionTester extends AdvancedRobot {
 			
 			lastTickProjection = projection.getProjections().get(projection.getProjections().size()-1);
 			
-			if (!lastTickProjection.getPosition().equals(new Point2D.Double(getX(),getY())) ||
-				lastTickProjection.getHeading() != getHeading() ||
-				lastTickProjection.getVelocity() != getVelocity()) {
+			//out.println("X:" + lastTickProjection.getPosition().getX() + "\nY:" + lastTickProjection.getPosition().getY() + "\nvel:" + lastTickProjection.getVelocity() + "\nhed:" + getHeading());
+			
+			if (lastTickProjection.getPosition().distance(new Point2D.Double(getX(),getY())) > 0.00001 ||
+				Math.abs(lastTickProjection.getHeading() - getHeading()) > 0.00001 ||
+				Math.abs(lastTickProjection.getVelocity() - getVelocity()) > 0.00001) {
 				
 				out.println("Wrong prediction!");
 			}
 	
-			if (getTime() < 20) {
+			if (getTime() < 5) {
 				setAhead(100);
 			}
-			else if (getTime() == 20) {
+			else if (getTime() == 5) {
 				projection = new Projection(new Point2D.Double(getX(),getY()), getHeading(), getVelocity(), -1, getHeading()+20);
 				setTurnRight(20);
 				setBack(100);
 			}
-			else {
+			else if (getTime() < 50){
 				setBack(100);
 			}
 			
@@ -69,8 +84,11 @@ public class ProjectionTester extends AdvancedRobot {
 	@Override
 	public void onPaint(Graphics2D g) {
 	
+		for (tickProjection tickProjection : projectionsList) {
+			g.drawRect((int)tickProjection.getPosition().getX() - 5, (int)tickProjection.getPosition().getY() - 5, 10, 10);
+		}
 		
-		g.drawRect((int)lastTickProjection.getPosition().getX() - 5, (int)lastTickProjection.getPosition().getY() - 5, 10, 10);
+		//g.drawRect((int)lastTickProjection.getPosition().getX() - 5, (int)lastTickProjection.getPosition().getY() - 5, 10, 10);
 		
 		
 		super.onPaint(g);
