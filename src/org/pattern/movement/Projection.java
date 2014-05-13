@@ -168,7 +168,8 @@ public class Projection {
 		for(int i=0; i < numTicks; i++){
 			ret.add(this.projectNextTick());
 		}
-
+		
+		projections.addAll(ret);
 		return ret;
 	}
 }
