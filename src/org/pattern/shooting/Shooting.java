@@ -51,7 +51,7 @@ public class Shooting implements Observer {
 		int direction = (int) Math.signum(e.getVelocity());
 		if (direction == 0)
 			direction = 1;
-		Projection houdini = new Projection(enemyPosition, e.getHeading(), e.getVelocity(), direction, e.getHeading());
+		Projection houdini = new Projection(enemyPosition, e.getHeading(), e.getVelocity(), direction, 0);
 		List<tickProjection> possibleTargets = houdini.projectNextTicks(2000);
 		for (int i = 0; i < possibleTargets.size(); i++) {
 			tickProjection tmpTick = possibleTargets.get(i);

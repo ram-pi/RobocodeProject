@@ -24,15 +24,15 @@ public class ProjectionTester extends AdvancedRobot {
 	@Override
 	public void run() {
 
-		projection = new Projection(new Point2D.Double(getX(),getY()), getHeading(), getVelocity(), 1, getHeading());
+		projection = new Projection(new Point2D.Double(getX(),getY()), getHeading(), getVelocity(), 1, 0);
 		projectionsList = new LinkedList<>();
-		Projection visualProjection = new Projection(new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), 1, getHeading());
+		Projection visualProjection = new Projection(new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), 1, 0);
 		
 		projectionsList.addAll(visualProjection.projectNextTicks(5));
 		
 		tickProjection lastBeforeTurning = projectionsList.get(projectionsList.size()-1);
 		
-		visualProjection = new Projection(lastBeforeTurning.getPosition(), lastBeforeTurning.getHeading(), lastBeforeTurning.getVelocity(), -1, lastBeforeTurning.getHeading()+20);
+		visualProjection = new Projection(lastBeforeTurning.getPosition(), lastBeforeTurning.getHeading(), lastBeforeTurning.getVelocity(), -1, 20);
 		
 		projectionsList.addAll(visualProjection.projectNextTicks(30));
 		
@@ -60,7 +60,7 @@ public class ProjectionTester extends AdvancedRobot {
 				setAhead(100);
 			}
 			else if (getTime() == 5) {
-				projection = new Projection(new Point2D.Double(getX(),getY()), getHeading(), getVelocity(), -1, getHeading()+20);
+				projection = new Projection(new Point2D.Double(getX(),getY()), getHeading(), getVelocity(), -1, 20);
 				setTurnRight(20);
 				setBack(100);
 			}

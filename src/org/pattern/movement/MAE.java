@@ -18,7 +18,6 @@ public class MAE {
 	
 	private List<tickProjection> projections;
 	
-	
 	public List<tickProjection> getProjections() {
 		return projections;
 	}
@@ -59,46 +58,105 @@ public class MAE {
 		this.velocity = velocity;
 	}
 
+	public List<tickProjection> MAEturnFirst(Point2D firingPosition, Point2D position, double heading, double velocity,double bulletVelocity) {
+		this.firingPosition = firingPosition;
+		this.position = position;
+		this.heading = heading;
+		this.velocity = velocity;
+
+
+		double bestHeading = Utils.absBearingPerpendicular(firingPosition, position, heading);
+
+		int wantedDirection = (int)Math.signum(velocity);
+		Projection projection = new Projection(position, heading, velocity, wantedDirection, robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - heading));
+		List<tickProjection> rotatingProjections = new LinkedList<>();
+
+
+		for (int t = 1; t < 200; t++) {
+			tickProjection tick = projection.projectNextTick();
+
+			if (robocode.util.Utils.normalNearAbsoluteAngleDegrees(Math.abs(tick.getHeading() -  bestHeading)) < 0.0001) {
+				rotatingProjections.addAll(projection.getProjections());
+				break;
+			}
+		}
+
+
+		tickProjection lastTick = rotatingProjections.get(rotatingProjections.size()-1);
+
+		projection = new Projection(lastTick.getPosition(), lastTick.getHeading(), lastTick.getVelocity(), 1, 0);
+		List<tickProjection> positiveMAE = new LinkedList<>();
+		boolean found = false;
+
+		double rotatingTime = lastTick.getTick();
+
+		for (int t = 1; t < 200 || !found; t++) {
+			tickProjection tick = projection.projectNextTick();
+
+			if (Math.abs(tick.getPosition().distance(firingPosition) -  bulletVelocity * (t + rotatingTime)) < 10) {
+				found = true;
+				positiveMAE.addAll(projection.getProjections());
+			}
+		}
+
+		projection = new Projection(lastTick.getPosition(), lastTick.getHeading(), lastTick.getVelocity(), -1, 0);
+		List<tickProjection> negativeMAE = new LinkedList<>();
+		found = false;
+
+		for (int t = 1; t < 200 || !found; t++) {
+			tickProjection tick = projection.projectNextTick();
+
+			if (Math.abs(tick.getPosition().distance(firingPosition) -  bulletVelocity * (t + rotatingTime)) < 10) {
+				found = true;
+				negativeMAE.addAll(projection.getProjections());
+			}
+		}
+
+		positiveMAE.remove(0);
+		negativeMAE.addAll(positiveMAE);
+
+		return negativeMAE;
+	}
+
 	public MAE(Point2D firingPosition, Point2D position, double heading, double velocity,double bulletVelocity) {
 		this.firingPosition = firingPosition;
 		this.position = position;
 		this.heading = heading;
 		this.velocity = velocity;
-		
-		
-		double bestHeading = robocode.util.Utils.normalAbsoluteAngleDegrees(Utils.absBearing(position, firingPosition) - 90);
-		
-		Projection projection = new Projection(position, heading, velocity, 1, bestHeading);
+
+		double bestHeading = Utils.absBearingPerpendicular(firingPosition, position, heading);
+
+		Projection projection = new Projection(position, heading, velocity, 1, robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - heading));
 		List<tickProjection> positiveMAE = new LinkedList<>();
 		boolean found = false;
-		
+
 		for (int t = 1; t < 200 || !found; t++) {
 			tickProjection tick = projection.projectNextTick();
-			
+
 			if (Math.abs(tick.getPosition().distance(firingPosition) -  bulletVelocity * t) < 10) {
 				found = true;
 				positiveMAE.addAll(projection.getProjections());
 			}
 		}
-		
-		projection = new Projection(position, heading, velocity, -1, bestHeading);
+
+		projection = new Projection(position, heading, velocity, -1, robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - heading));
 		List<tickProjection> negativeMAE = new LinkedList<>();
 		found = false;
-		
+
 		for (int t = 1; t < 200 || !found; t++) {
 			tickProjection tick = projection.projectNextTick();
-			
+
 			if (Math.abs(tick.getPosition().distance(firingPosition) -  bulletVelocity * t) < 10) {
 				found = true;
 				negativeMAE.addAll(projection.getProjections());
 			}
 		}
-		
+
 		positiveMAE.remove(0);
 		negativeMAE.addAll(positiveMAE);
-		
-		this.projections = negativeMAE;
-		
+
+		projections = negativeMAE;
+
 	}
 
 }

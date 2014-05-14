@@ -67,11 +67,12 @@ public class Projection {
 	}
 
 	private static double MAX_VELOCITY = 8.0;
-	
-	public Projection(Point2D position, double heading, double velocity, int wantedDirection, double wantedHeading) {
+
+
+	public Projection(Point2D position, double heading, double velocity, int wantedDirection, double bearingOffset) {
 		this.projections = new  LinkedList<>();
 		this.wantedDirection = wantedDirection;
-		this.wantedHeading = wantedHeading;
+		this.wantedHeading = heading+bearingOffset;
 		
 		tickProjection firstProjection = new tickProjection();
 		
@@ -107,6 +108,9 @@ public class Projection {
 		
 		if (v == 0 || wantedDirection * v > 0) { 
 			a = wantedDirection * Rules.ACCELERATION;
+		}
+		else if (wantedDirection == 0){
+			a = 0;
 		}
 		else {
 			a = wantedDirection * Rules.DECELERATION;

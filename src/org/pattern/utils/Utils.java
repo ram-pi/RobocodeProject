@@ -23,5 +23,16 @@ public class Utils {
 		theta = Math.toDegrees(theta);
 		return theta; 
 	}
-	
+
+	public static double absBearingPerpendicular (Point2D a, Point2D b, double heading) {
+		double theta = robocode.util.Utils.normalAbsoluteAngleDegrees((Utils.absBearing(a, b) - 90));
+
+		double offset = robocode.util.Utils.normalRelativeAngleDegrees(theta - heading);
+
+		if (Math.abs(offset) > 90)
+			theta -= 180;
+
+		return robocode.util.Utils.normalAbsoluteAngleDegrees(theta);
+	}
+
 }
