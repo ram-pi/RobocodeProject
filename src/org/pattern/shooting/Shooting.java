@@ -25,13 +25,13 @@ public class Shooting implements Observer {
 	private List<Bullet> bullets;
 
 	public enum shooterType {
-		Circular, MEA
+		Circular, MEA, HeadOnTarget
 	}
 
 	public Shooting(AdvancedRobot robot) {
 		this.robot = robot;
 		this.sniper = new ViewFinder(robot);
-		this.type = shooterType.MEA;
+		this.type = shooterType.HeadOnTarget;
 		this.bullets = new LinkedList<>();
 	}
 
@@ -58,6 +58,11 @@ public class Shooting implements Observer {
 		}
 		if (type == shooterType.MEA) {
 			shotAtMEA(enemy);
+			addBullet();
+			robot.fire(bulletPower);
+		}
+		if (type == shooterType.HeadOnTarget) {
+			shotHeadOnTarget(enemy);
 			addBullet();
 			robot.fire(bulletPower);
 		}
@@ -94,6 +99,9 @@ public class Shooting implements Observer {
 		sniper.rotateGunMEA(e.getX(), e.getY(), bulletPower, e.getHeading(), e.getVelocity());
 	}
 
+	public void shotHeadOnTarget(Enemy e) {
+		sniper.rotateGun(e.getX(), e.getY());
+	}
 
 	public boolean shouldShot(ScannedRobotEvent enemy) {
 		return true;
