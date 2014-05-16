@@ -6,19 +6,9 @@ import robocode.util.Utils;
 public class ViewFinder {
 	
 	private AdvancedRobot robot;
-	private double aimX, aimY;
 	
 	public ViewFinder(AdvancedRobot robot) {
 		this.robot = robot;
-	}
-	
-	public void setPointToShot(double aimX, double aimY) {
-		this.aimX = aimX;
-		this.aimY = aimY;
-	}
-	
-	public void moveGunToPoint() {
-		rotateGun(aimX, aimY);
 	}	
 	
 	public void rotateGun(double predictedX, double predictedY) {
@@ -26,6 +16,24 @@ public class ViewFinder {
 		theta = Utils.normalAbsoluteAngleDegrees(theta - robot.getGunHeading());
 		theta = Utils.normalRelativeAngleDegrees(theta);
 		robot.setTurnGunRight(theta);
+	}
+	
+	/* This function should aim the MEA of an enemy*/
+	public void rotateGunMEA(double enemyX, double enemyY, double firePower, double heading, double velocity) {
+		double theta = ShootingUtils.findAngle(enemyX, enemyY, robot.getX(), robot.getY());
+		theta = Utils.normalAbsoluteAngleDegrees(theta - robot.getGunHeading());
+		theta = Utils.normalRelativeAngleDegrees(theta);
+		double omega = ShootingUtils.maximumEscapeAngle(firePower);
+		heading = Utils.normalRelativeAngleDegrees(heading);
+		int direction = (int) Math.signum(velocity);
+		if ((heading < 0 && direction == 1) || (heading >= 0 && direction != 1)) {
+			double angle = theta + omega;
+			robot.setTurnGunRight(angle);
+		}
+		else if ((heading >= 0 && direction == 1) || (heading < 0 && direction != 1) ) {
+			double angle = theta - omega;
+			robot.setTurnGunRight(angle);
+		}
 	}
 	
 	public AdvancedRobot getRobot() {

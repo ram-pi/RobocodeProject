@@ -51,4 +51,17 @@ public class ShootingUtils {
 		theta = Math.toDegrees(theta);
 		return theta;
 	}
+	
+	/* This function give the MEA assuming that the angle C is 90 degrees and the enemy' s velocity is the maximum (8.0) */
+	public static double maximumEscapeAngle(double bulletPower) {
+		double bulletVelocity = 20 -3*bulletPower;
+		double theta = Math.asin(8.0 / bulletVelocity);
+		theta = Utils.normalAbsoluteAngle(theta);
+		theta = Math.toDegrees(theta);
+		return theta;
+	}
+	
+	public static double getBulletSpeed(double bulletPower) {
+		return 20 - 3*bulletPower;
+	}
 }

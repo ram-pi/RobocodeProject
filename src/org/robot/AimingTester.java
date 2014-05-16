@@ -21,7 +21,7 @@ public class AimingTester extends AdvancedRobot {
 	public void run() {
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
-		v.setPointToShot(x, y);
+		//v.setPointToShot(x, y);
 		v = new ViewFinder(this);
 	
 		
