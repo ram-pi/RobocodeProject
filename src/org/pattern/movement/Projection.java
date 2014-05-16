@@ -47,11 +47,47 @@ public class Projection {
 	
 	private List<tickProjection> projections;
 	private int wantedDirection;
+	private Point2D position;
+	private double velocity;
+	private double bearingOffset;
 	private double wantedHeading;
-
+	private double heading;
 	
 	public double getWantedHeading() {
 		return wantedHeading;
+	}
+
+	public Point2D getPosition() {
+		return position;
+	}
+
+	public void setPosition(Point2D position) {
+		this.position = position;
+	}
+
+	public double getVelocity() {
+		return velocity;
+	}
+
+	public void setVelocity(double velocity) {
+		this.velocity = velocity;
+	}
+
+	public double getBearingOffset() {
+		return bearingOffset;
+	}
+
+	public void setBearingOffset(double bearingOffset) {
+		this.bearingOffset = bearingOffset;
+		this.wantedHeading = heading+bearingOffset;
+	}
+
+	public double getHeading() {
+		return heading;
+	}
+
+	public void setHeading(double heading) {
+		this.heading = heading;
 	}
 
 	public void setWantedHeading(double wantedHeading) {
@@ -73,16 +109,14 @@ public class Projection {
 		this.projections = new  LinkedList<>();
 		this.wantedDirection = wantedDirection;
 		this.wantedHeading = heading+bearingOffset;
+		this.bearingOffset = bearingOffset;
+		this.velocity = velocity;
+		this.position = position;
+		this.heading = heading;
 		
-		tickProjection firstProjection = new tickProjection();
+		init();
 		
-		firstProjection.setHeading(heading);
-		firstProjection.setPosition(position);
-		firstProjection.setVelocity(velocity);
-		firstProjection.setTick(0);
-		
-		
-		projections.add(firstProjection);
+
 	}
 	
 
@@ -92,6 +126,22 @@ public class Projection {
 
 	public void setWantedDirection(int wantedDirection) {
 		this.wantedDirection = wantedDirection;
+	}
+	
+	public void init() {
+		
+		projections.clear();
+		
+		
+		tickProjection zeroTick = new tickProjection();
+		
+		zeroTick.setHeading(heading);
+		zeroTick.setPosition(position);
+		zeroTick.setVelocity(velocity);
+		zeroTick.setTick(0);
+		
+		
+		projections.add(zeroTick);
 	}
 
 	public tickProjection projectNextTick() {

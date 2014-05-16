@@ -16,9 +16,9 @@ public class MAE {
 	private Point2D position;
 	private double heading;
 	private double velocity;
-	
+
 	private List<tickProjection> projections;
-	
+
 	public List<tickProjection> getProjections() {
 		return projections;
 	}
@@ -119,50 +119,64 @@ public class MAE {
 		return negativeMAE;
 	}
 
+
 	public MAE(Point2D firingPosition, Point2D position, double heading, double velocity, double bulletVelocity, Rectangle2D battleField) {
+
 		this.firingPosition = firingPosition;
 		this.position = position;
 		this.heading = heading;
 		this.velocity = velocity;
 
 		double bestHeading = Utils.absBearingPerpendicular(firingPosition, position, heading);
+		double wantedAngle = robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - heading);
 
 		Projection projection = new Projection(position, heading, velocity, 1, robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - heading));
 		List<tickProjection> positiveMAE = new LinkedList<>();
 
 		boolean found = false;
+		boolean wallsSmoothed = false;
 
-		for (int t = 1; t < 200 || !found; t++) {
-			tickProjection tick = projection.projectNextTick();
+		while (!wallsSmoothed) {
+			wallsSmoothed = true;
+			for (int t = 1; t < 200 || !found; t++) {
+				tickProjection tick = projection.projectNextTick();
 
-			boolean top = false, bottom = false, left = false, right= false;
-			double currentHeading = robocode.util.Utils.normalAbsoluteAngle(tick.getHeading());
-			
-			if (tick.getPosition().getY() < 120. && (currentHeading > 90 && currentHeading < 270))
-				bottom = true;
-			
-			if (tick.getPosition().getY() > battleField.getHeight() - 120. && (currentHeading < 90 && currentHeading > 0 || currentHeading > 270 && currentHeading < 360))
-				top = true;
-			
-			if (tick.getPosition().getX() < 120. && (currentHeading > 180 && currentHeading < 360))
-				left = true;
-			
-			if (tick.getPosition().getX() > battleField.getWidth() - 120. && (currentHeading > 0 && currentHeading < 180))
-				right = true;
-			
-			double distanceToWall;
-			if (bottom && !left && !right) {
-				double alfa = Math.abs(180. - currentHeading);
-				distanceToWall = tick.getPosition().getX() / Math.cos(Math.toRadians(alfa));
-				if (distanceToWall > 120) {
-					projection.set
+				boolean top = false, bottom = false, left = false, right= false;
+				double currentHeading = robocode.util.Utils.normalAbsoluteAngleDegrees(tick.getHeading());
+
+				if (tick.getPosition().getY() < 120. && (currentHeading > 90 && currentHeading < 270))
+					bottom = true;
+
+				if (tick.getPosition().getY() > battleField.getHeight() - 120. && (currentHeading < 90 && currentHeading > 0 || currentHeading > 270 && currentHeading < 360))
+					top = true;
+
+				if (tick.getPosition().getX() < 120. && (currentHeading > 180 && currentHeading < 360))
+					left = true;
+
+				if (tick.getPosition().getX() > battleField.getWidth() - 120. && (currentHeading > 0 && currentHeading < 180))
+					right = true;
+
+				double distanceToWall;
+				if (bottom && !left && !right) {
+					double alfa = Math.abs(180. - currentHeading);
+					distanceToWall = tick.getPosition().getY() / Math.cos(Math.toRadians(alfa));
+					if (distanceToWall < 120) {
+						wallsSmoothed = false;
+						if (currentHeading > 180)
+							projection.setBearingOffset(wantedAngle+2);
+						else
+							projection.setBearingOffset(wantedAngle-2);
+
+						projection.init();
+						break;
+					}
 				}
-			}
-			
 
-			if (Math.abs(tick.getPosition().distance(firingPosition) -  bulletVelocity * t) < 10) {
-				found = true;
-				positiveMAE.addAll(projection.getProjections());
+
+				if (Math.abs(tick.getPosition().distance(firingPosition) -  bulletVelocity * t) < 10) {
+					found = true;
+					positiveMAE.addAll(projection.getProjections());
+				}
 			}
 		}
 

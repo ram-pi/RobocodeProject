@@ -2,37 +2,127 @@ package org.pattern.movement;
 
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
+import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
+import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
+import robocode.util.Utils;
+
+
 
 public class Movement implements Observer{
 	private AdvancedRobot robot;
 	private List<GBulletFiredEvent> bullets;
+
+	private List<Point2D> points;
+	
 	
 	public Movement(AdvancedRobot robot) {
 		this.robot = robot;
 		bullets = new LinkedList<>();
 	}
-	
+
 	@Override
 	public void update(Observable o, Object arg) {
 		if (arg instanceof GBulletFiredEvent) {
 			bullets.add((GBulletFiredEvent)arg);
 		}
 	}
-	
+
 	public void doMovement() {
-		
+		for (GBulletFiredEvent bullet : bullets) {
+			if (bullet.getFiringTime() * bullet.getVelocity() - new Point2D.Double(robot.getX(), robot.getY()).distance(bullet.getFiringRobot().getPosition()) > 50) {
+				bullets.remove(bullet);
+			}
+		}
 	}
 
-	public void consumeOnPaintEvent(Graphics2D g) {
+	
+	public void choosePath() {
+		// return path (setAhead and setFront)
 		
+		//generatePathOrbitPoint(Point enemy);
+		
+	}
+	
+	public void generateOrbits(Point2D orbitCenter, int ticks) {
+		//clockwise
+		int direction = 1;
+		
+		List<Double> randomTurningAngles = new LinkedList<>();
+		
+		double startAngle = org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(robot.getX(), robot.getY()), orbitCenter, robot.getHeading());
+		randomTurningAngles.add(org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(robot.getX(), robot.getY()), orbitCenter, robot.getHeading()));
+//		for (int i= 1; i< 15; i++) {
+//			randomTurningAngles.add(startAngle+i*5.);
+//		}
+				
+		
+	
+		
+		
+		Line2D up=new Line2D.Double(0,robot.getBattleFieldHeight(),robot.getBattleFieldWidth(),robot.getBattleFieldHeight());
+		Line2D down=new Line2D.Double(0, 0, robot.getBattleFieldWidth(),0);
+		Line2D left=new Line2D.Double(0, 0, 0,robot.getBattleFieldHeight());
+		Line2D right=new Line2D.Double(robot.getBattleFieldWidth(), 0, robot.getBattleFieldWidth(),robot.getBattleFieldHeight());
+
+		points = new LinkedList<>();
+		double stickLenght = 150;
+
+		for (Double angle : randomTurningAngles) {
+			boolean ahead = true;
+			if (!(robocode.util.Utils.normalAbsoluteAngleDegrees(angle - robot.getHeading()) < 90.)) {
+				ahead = false;
+			}
+			
+			Projection proj = new Projection(new Point2D.Double(robot.getX(), robot.getY()),
+					robot.getHeading(), 
+					robot.getVelocity(), 
+					ahead? 1 : -1, 
+					(ahead? 1 : -1) * angle - robot.getHeading());
+			
+
+
+			for (int t = 0; t < ticks; t++) {
+				tickProjection tickProjection = proj.projectNextTick();
+				
+				//TODO only if near wall
+				double xend=robot.getX()+Math.sin(Math.toRadians(tickProjection.getHeading()))*stickLenght;
+				double yend=robot.getY()+Math.cos(Math.toRadians(tickProjection.getHeading()))*stickLenght;
+				Line2D stick = new Line2D.Double(robot.getX(), robot.getY(), xend, yend);
+				
+				if(stick.intersectsLine(up)	|| stick.intersectsLine(down) || stick.intersectsLine(left) || stick.intersectsLine(right)){
+					if (Math.abs(tickProjection.getHeading() - proj.getWantedHeading()) > 0.0001) {
+						robot.out.println("can't turn more... wall smoothing not possible?");
+					}
+					proj.setWantedHeading(proj.getHeading() +  5. * direction);
+				}
+				
+				
+			}
+			
+	
+			for (tickProjection tick : proj.getProjections()) {
+				points.add(tick.getPosition());
+			}
+			
+		}
+		
+		
+		
+		
+	}
+	
+	public void consumeOnPaintEvent(Graphics2D g) {
+
 		for (GBulletFiredEvent bullet : bullets) {
    			double radius = bullet.getVelocity() * (robot.getTime() - bullet.getFiringTime());
    			
@@ -42,6 +132,12 @@ public class Movement implements Observer{
    			g.drawArc((int)(bullet.getFiringRobot().getX() - radius), (int)(bullet.getFiringRobot().getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
    			g.drawRect((int)bullet.getFiringRobot().getX(), (int)bullet.getFiringRobot().getY(), 10, 10);
 		}
+		
+		for (Point2D point : points) {
+			g.drawRect((int)point.getX()-2, (int)point.getY()-2, 4, 4);
+		}
+		
+
 		
 	}
 	

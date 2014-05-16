@@ -3,6 +3,8 @@ package org.robot;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.Rectangle2D.Double;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -19,13 +21,19 @@ public class MAETester extends AdvancedRobot {
 	private MAE preciseMAE;
 	private List<tickProjection> turnFirst = new LinkedList<>();
 	
+	private Point2D startPosition;
+	private double v,h;
+	
 	public MAETester() {
 		// TODO Auto-generated constructor stub
 	}
 	
 	@Override
 	public void run() {
-		preciseMAE = new MAE(bulletPosition, new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), (20 - 3 * bulletEnergy));
+		startPosition = new Point2D.Double(getX(), getY());
+		h = getHeading();
+		v = getVelocity();
+		preciseMAE = new MAE(bulletPosition, startPosition, getHeading(), getVelocity(), (20 - 3 * bulletEnergy), new Rectangle2D.Double(0, 0, getBattleFieldWidth(), getBattleFieldHeight()));
 		turnFirst = preciseMAE.MAEturnFirst(bulletPosition, new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), (20 - 3 * bulletEnergy));
 		
 		//double bestHeading = robocode.util.Utils.normalAbsoluteAngleDegrees(Utils.absBearing(new Point2D.Double(getX(), getY()), bulletPosition) - 90);
@@ -41,6 +49,7 @@ public class MAETester extends AdvancedRobot {
 	public void onPaint(Graphics2D g) {
 		//paint preciseMAE
 
+		MAE superPreciseMAE = new MAE(bulletPosition, startPosition, h, v, (20 - 3 * bulletEnergy), new Rectangle2D.Double(0, 0, getBattleFieldWidth(), getBattleFieldHeight()));
 		for (tickProjection pTick : preciseMAE.getProjections()) {
 			g.drawRect((int)pTick.getPosition().getX()-2, (int)pTick.getPosition().getY()-2, 4, 4);
 		}
