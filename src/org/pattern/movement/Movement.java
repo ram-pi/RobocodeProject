@@ -1,5 +1,6 @@
 package org.pattern.movement;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
@@ -24,6 +25,9 @@ public class Movement implements Observer{
 
 	private List<Point2D> points;
 	
+	private boolean surfing = false;
+	private Path path;
+	
 	
 	public Movement(AdvancedRobot robot) {
 		this.robot = robot;
@@ -39,30 +43,55 @@ public class Movement implements Observer{
 
 	public void doMovement() {
 		for (GBulletFiredEvent bullet : bullets) {
-			if (bullet.getFiringTime() * bullet.getVelocity() - new Point2D.Double(robot.getX(), robot.getY()).distance(bullet.getFiringRobot().getPosition()) > 50) {
+			if ((robot.getTime() - bullet.getFiringTime()) * bullet.getVelocity() > new Point2D.Double(robot.getX(), robot.getY()).distance(bullet.getFiringRobot().getPosition())) {
 				bullets.remove(bullet);
 			}
+		}
+		
+		if (bullets.size() == 0) {
+			surfing = false;
+			doFallBackMovement();
+			return;
+		}
+		
+		//else
+		if (surfing == false) {
+			GBulletFiredEvent nearestBullet = getNearestWave();
+			path = getBestPath(nearestBullet);
+			path.setStartingTick(robot.getTime());
+			surfing = true;
+		}
+		
+		if (surfing) {
+			if (!path.isEnded()) {
+				path.followPath(robot);
+			} else {
+				surfing = false;
+			}
+			return;
 		}
 	}
 
 	
-	public void choosePath() {
-		// return path (setAhead and setFront)
+
+	
+	private GBulletFiredEvent getNearestWave() {
 		
-		//generatePathOrbitPoint(Point enemy);
-		
+		return bullets.get(0);
 	}
-	
-	
-	 
-	
-	public List<Path> generateOrbits(Point2D orbitCenter, int ticks) {
+
+	private void doFallBackMovement() {
+		robot.setAhead(3.);
+		return;
+	}
+
+	public Path getBestPath(GBulletFiredEvent bullet) {
 		//clockwise
 		int direction = 1;
-		List<Path> ret = new LinkedList<>();
-
 		
 		List<Double> randomTurningAngles = new LinkedList<>();
+		Point2D orbitCenter = bullet.getFiringRobot().getPosition();
+		int ticks = (int) (new Point2D.Double(robot.getX(), robot.getY()).distance(orbitCenter) / bullet.getVelocity());
 		
 		double startAngle = org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(robot.getX(), robot.getY()), orbitCenter, direction);
 		randomTurningAngles.add(startAngle);
@@ -72,13 +101,13 @@ public class Movement implements Observer{
 				
 		
 		//TODO change in a Rect2D
-		Line2D up=new Line2D.Double(0,robot.getBattleFieldHeight(),robot.getBattleFieldWidth(),robot.getBattleFieldHeight());
-		Line2D down=new Line2D.Double(0, 0, robot.getBattleFieldWidth(),0);
-		Line2D left=new Line2D.Double(0, 0, 0,robot.getBattleFieldHeight());
-		Line2D right=new Line2D.Double(robot.getBattleFieldWidth(), 0, robot.getBattleFieldWidth(),robot.getBattleFieldHeight());
+		Line2D up=new Line2D.Double(18,robot.getBattleFieldHeight()-18,robot.getBattleFieldWidth()-18,robot.getBattleFieldHeight()-18);
+		Line2D down=new Line2D.Double(18, 18, robot.getBattleFieldWidth()-18,18);
+		Line2D left=new Line2D.Double(18, 18, 18,robot.getBattleFieldHeight()-18);
+		Line2D right=new Line2D.Double(robot.getBattleFieldWidth()-18, 18, robot.getBattleFieldWidth()-18,robot.getBattleFieldHeight()-18);
 
 		points = new LinkedList<>();
-		double stickLenght = 151;
+		double stickLenght = 160;
 
 		for (Double angle : randomTurningAngles) {
 			boolean ahead = true;
@@ -95,9 +124,11 @@ public class Movement implements Observer{
 			
 
 
-			for (int t = 0; t < ticks; t++) {
+			for (int t = 1; t < ticks; t++) {
 				tickProjection tickProjection = proj.projectNextTick();
 				
+				if (!(robot.getX() < 180 || robot.getX() > robot.getBattleFieldWidth() - 180 || robot.getY() < 180 || robot.getY() > robot.getBattleFieldHeight() - 180))
+					continue;
 				//TODO only if near wall
 				double directionHeading = ahead ? tickProjection.getHeading() : tickProjection.getHeading() + 180;
 				
@@ -107,7 +138,8 @@ public class Movement implements Observer{
 				
 				if(stick.intersectsLine(up)	|| stick.intersectsLine(down) || stick.intersectsLine(left) || stick.intersectsLine(right)){
 					if (Math.abs(tickProjection.getHeading() - proj.getWantedHeading()) < 5.) {
-						proj.setTurningOffset(direction * 5.);
+						robot.out.println("set adjustment at tick " + t);
+						proj.setTurningAdjustment(direction * 5.);
 					}
 				}
 				
@@ -116,20 +148,19 @@ public class Movement implements Observer{
 				
 			}
 			
-			Path orbit = new Path(proj.getProjections());
-			orbit.setInitialTick(0);
-			orbit.setDirection(ahead ? 1 : -1);
-			orbit.setStartingBearingOffset(Utils.normalRelativeAngleDegrees(angle - robot.getHeading()));
-			ret.add(orbit);
-	
+			Path path = new Path(proj);
+			path.setStartingTick(robot.getTime());
+
 			for (tickProjection tick : proj.getProjections()) {
 				points.add(tick.getPosition());
 			}
 			
+			return path;
+			
 		}
+		return null;
 		
-		return ret;
-		
+
 		
 		
 	}
@@ -149,6 +180,11 @@ public class Movement implements Observer{
 		for (Point2D point : points) {
 			g.drawRect((int)point.getX()-2, (int)point.getY()-2, 4, 4);
 		}
+		
+		Color c = g.getColor();
+		g.setColor(new Color(0, 255, 255));
+		g.drawRect((int)robot.getX()-4, (int)robot.getY()-4, 8, 8);
+		g.setColor(c);
 		
 
 		

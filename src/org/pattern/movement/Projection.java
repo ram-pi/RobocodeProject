@@ -16,15 +16,16 @@ public class Projection {
 		private double heading;
 		private double velocity;
 		private Point2D position;
+		
 		private int tick;
 		
-		private double turnOffset;
+		private double turnAdjust;
 
-		public double getTurnOffset() {
-			return turnOffset;
+		public double getTurnAjust() {
+			return turnAdjust;
 		}
-		public void setTurnOffset(double turnOffset) {
-			this.turnOffset = turnOffset;
+		public void setTurnAdjust(double turnAdjust) {
+			this.turnAdjust = turnAdjust;
 		}
 		public int getTick() {
 			return tick;
@@ -61,9 +62,6 @@ public class Projection {
 	private double bearingOffset;
 	private double wantedHeading;
 	private double heading;
-	
-	private boolean turnChanged;
-	private double turnChangeOffset;
 	
 	public double getWantedHeading() {
 		return wantedHeading;
@@ -125,16 +123,15 @@ public class Projection {
 		this.velocity = velocity;
 		this.position = position;
 		this.heading = heading;
-		this.turnChanged = false;
+		
 		
 		init();
 	}
 	
-	public void setTurningOffset(double angle) {
+	public void setTurningAdjustment(double angle) {
+		tickProjection last = projections.get(projections.size() - 1);
+		last.setTurnAdjust(angle);
 		this.wantedHeading += angle;
-		this.turnChangeOffset = angle;
-		this.turnChanged = true;
-		
 	}
 
 	public int getWantedDirection() {
@@ -148,7 +145,7 @@ public class Projection {
 	public void init() {
 		
 		projections.clear();
-		turnChanged = false;
+
 		
 		
 		tickProjection zeroTick = new tickProjection();
@@ -188,11 +185,6 @@ public class Projection {
 		
 		double turnRate = 10 - 0.75 * Math.abs(v);
 		
-		if (turnChanged) {
-			turnChanged = false;
-			projection.setTurnOffset(turnChangeOffset);
-		}
-		
 		if (wantedHeading != h) {
 			int turningDir = wantedHeading > h ? 1 : -1;
 			turnRate = Utils.Min(turnRate, Math.abs(wantedHeading - h));
@@ -201,7 +193,7 @@ public class Projection {
 		}
 		        
 				
-		// updating velocity
+		// updating velocityh
 		
 		//check if we change from dec to acc
 		double decTime = Math.abs(v)/2.0;

@@ -19,7 +19,6 @@ public class MAETester extends AdvancedRobot {
 	public Point2D bulletPosition = new Point2D.Double(100, 200);
 	public double bulletEnergy = 2.0;
 	private MAE preciseMAE;
-	private List<tickProjection> turnFirst = new LinkedList<>();
 	
 	private Point2D startPosition;
 	private double v,h;
@@ -34,13 +33,20 @@ public class MAETester extends AdvancedRobot {
 		h = getHeading();
 		v = getVelocity();
 		preciseMAE = new MAE(bulletPosition, startPosition, getHeading(), getVelocity(), (20 - 3 * bulletEnergy), new Rectangle2D.Double(0, 0, getBattleFieldWidth(), getBattleFieldHeight()));
-		turnFirst = preciseMAE.MAEturnFirst(bulletPosition, new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), (20 - 3 * bulletEnergy));
+		preciseMAE.noSmooth();
 		
-		//double bestHeading = robocode.util.Utils.normalAbsoluteAngleDegrees(Utils.absBearing(new Point2D.Double(getX(), getY()), bulletPosition) - 90);
-		double bestHeading = Utils.absBearingPerpendicular(new Point2D.Double(getX(), getY()), bulletPosition, 1);
 		
-		setTurnRight(robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - getHeading()));
-		setAhead(500);
+		double startAngle = org.pattern.utils.Utils.absBearingPerpendicular(startPosition, bulletPosition, 1);
+		
+			
+		boolean ahead = true;
+		if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(startAngle - getHeading())) > 90.) {
+			ahead = false;
+			startAngle += 180;
+		}
+		
+		setTurnRight(robocode.util.Utils.normalRelativeAngleDegrees(startAngle - getHeading()));
+		setAhead(ahead?1000:-1000);
 		execute();
 	
 	}
@@ -49,14 +55,9 @@ public class MAETester extends AdvancedRobot {
 	public void onPaint(Graphics2D g) {
 		//paint preciseMAE
 
-		MAE superPreciseMAE = new MAE(bulletPosition, startPosition, h, v, (20 - 3 * bulletEnergy), new Rectangle2D.Double(0, 0, getBattleFieldWidth(), getBattleFieldHeight()));
-		for (tickProjection pTick : preciseMAE.getProjections()) {
-			g.drawRect((int)pTick.getPosition().getX()-2, (int)pTick.getPosition().getY()-2, 4, 4);
-		}
+		
+		for (tickProjection pTick : preciseMAE.getAllPoints()) {
 
-		g.setColor(new Color(1, 0, 0));
-
-		for (tickProjection pTick : turnFirst) {
 			g.drawRect((int)pTick.getPosition().getX()-2, (int)pTick.getPosition().getY()-2, 4, 4);
 		}
 
@@ -65,7 +66,6 @@ public class MAETester extends AdvancedRobot {
 
 			/* the bullet is fired from cannon that is displaced 10px from the center of the robot */
 		g.drawArc((int)(bulletPosition.getX() - radius), (int)(bulletPosition.getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
-
 		g.drawLine((int)getX(), (int)getY(), (int)bulletPosition.getX(), (int)bulletPosition.getY());
 		
 	}

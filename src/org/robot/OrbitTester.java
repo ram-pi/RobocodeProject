@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.pattern.movement.Movement;
 import org.pattern.movement.Path;
+import org.pattern.radar.GBulletFiredEvent;
 
 import robocode.AdvancedRobot;
 
@@ -14,52 +15,40 @@ public class OrbitTester extends AdvancedRobot{
 	private Point2D enemyPosition;
 	private Movement movement;
 	
+	public OrbitTester() {
+		movement = new Movement(this);
+		enemyPosition = new Point2D.Double(300, 400);
+		
+	}
 	
 	
 	public void run() {
-		enemyPosition = new Point2D.Double(300, 400);
-		movement = new Movement(this);
 		
-		double bulletVelocity = 14;
-		double travellingTime = enemyPosition.distance(new Point2D.Double(getX(), getY()))/bulletVelocity;
+		Enemy mockEnemy = new Enemy();
+		mockEnemy.setX(enemyPosition.getX());
+		mockEnemy.setY(enemyPosition.getY());
 		
-		List<Path> orbits = movement.generateOrbits(enemyPosition, (int)travellingTime);
+		GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
+		gBulletFiredEvent.setFiringRobot(mockEnemy);
+		gBulletFiredEvent.setEnergy(2.0);
+		gBulletFiredEvent.setVelocity(20 - 3 * (2.0));
+		gBulletFiredEvent.setFiringTime(getTime());
 		
-		Path p = orbits.get(0);
-		int dir = p.getDirection();
-		double initialTurn = p.getStartingBearingOffset();
-		
-		if (dir == 1)
-			setAhead(1000);
-		else
-			setBack(1000);
-		
+		movement.update(null, gBulletFiredEvent);
 
-		long currentTime = 0;
-		setTurnRight(initialTurn);
-		p.getNextTurnOffset();
-		p.getNextTurnOffset();
-		execute();
 		
-		
-		while (true) {
-			double angleToTurn = 0;
-			if (currentTime != getTime()) {
-				long tickPassed = getTime() - currentTime;
-				currentTime = getTime();
-				if (tickPassed > 1) {
-					out.println("WARNING: SKIPPED TICK!");
-				}
-				angleToTurn = 0;
-				for (int i = 0; i < tickPassed; i++) {
-					angleToTurn += p.getNextTurnOffset();
-				}
+		while(true) {
+			if (getTime() % 15 == 0) {
+				
+				gBulletFiredEvent.setFiringTime(getTime());
+				
+				movement.update(null, gBulletFiredEvent);
 			}
-			if(angleToTurn > 0){
-				setTurnRight(angleToTurn);
-			}
+			
+			movement.doMovement();
 			execute();
-		}
+		}		
+		
 	}
 	
 	@Override
