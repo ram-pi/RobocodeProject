@@ -53,41 +53,45 @@ public class Movement implements Observer{
 		
 	}
 	
-	public void generateOrbits(Point2D orbitCenter, int ticks) {
+	
+	 
+	
+	public List<Path> generateOrbits(Point2D orbitCenter, int ticks) {
 		//clockwise
 		int direction = 1;
+		List<Path> ret = new LinkedList<>();
+
 		
 		List<Double> randomTurningAngles = new LinkedList<>();
 		
-		double startAngle = org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(robot.getX(), robot.getY()), orbitCenter, robot.getHeading());
-		randomTurningAngles.add(org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(robot.getX(), robot.getY()), orbitCenter, robot.getHeading()));
+		double startAngle = org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(robot.getX(), robot.getY()), orbitCenter, direction);
+		randomTurningAngles.add(startAngle);
 //		for (int i= 1; i< 15; i++) {
 //			randomTurningAngles.add(startAngle+i*5.);
 //		}
 				
 		
-	
-		
-		
+		//TODO change in a Rect2D
 		Line2D up=new Line2D.Double(0,robot.getBattleFieldHeight(),robot.getBattleFieldWidth(),robot.getBattleFieldHeight());
 		Line2D down=new Line2D.Double(0, 0, robot.getBattleFieldWidth(),0);
 		Line2D left=new Line2D.Double(0, 0, 0,robot.getBattleFieldHeight());
 		Line2D right=new Line2D.Double(robot.getBattleFieldWidth(), 0, robot.getBattleFieldWidth(),robot.getBattleFieldHeight());
 
 		points = new LinkedList<>();
-		double stickLenght = 150;
+		double stickLenght = 151;
 
 		for (Double angle : randomTurningAngles) {
 			boolean ahead = true;
-			if (!(robocode.util.Utils.normalAbsoluteAngleDegrees(angle - robot.getHeading()) < 90.)) {
+			if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - robot.getHeading())) > 90.) {
 				ahead = false;
+				angle += 180;
 			}
-			
+
 			Projection proj = new Projection(new Point2D.Double(robot.getX(), robot.getY()),
 					robot.getHeading(), 
 					robot.getVelocity(), 
 					ahead? 1 : -1, 
-					(ahead? 1 : -1) * angle - robot.getHeading());
+					Utils.normalRelativeAngleDegrees(angle - robot.getHeading()));
 			
 
 
@@ -95,20 +99,28 @@ public class Movement implements Observer{
 				tickProjection tickProjection = proj.projectNextTick();
 				
 				//TODO only if near wall
-				double xend=robot.getX()+Math.sin(Math.toRadians(tickProjection.getHeading()))*stickLenght;
-				double yend=robot.getY()+Math.cos(Math.toRadians(tickProjection.getHeading()))*stickLenght;
-				Line2D stick = new Line2D.Double(robot.getX(), robot.getY(), xend, yend);
+				double directionHeading = ahead ? tickProjection.getHeading() : tickProjection.getHeading() + 180;
+				
+				double xend=tickProjection.getPosition().getX()+Math.sin(Math.toRadians(directionHeading))*stickLenght;
+				double yend=tickProjection.getPosition().getY()+Math.cos(Math.toRadians(directionHeading))*stickLenght;
+				Line2D stick = new Line2D.Double(tickProjection.getPosition().getX(), tickProjection.getPosition().getY(), xend, yend);
 				
 				if(stick.intersectsLine(up)	|| stick.intersectsLine(down) || stick.intersectsLine(left) || stick.intersectsLine(right)){
-					if (Math.abs(tickProjection.getHeading() - proj.getWantedHeading()) > 0.0001) {
-						robot.out.println("can't turn more... wall smoothing not possible?");
+					if (Math.abs(tickProjection.getHeading() - proj.getWantedHeading()) < 5.) {
+						proj.setTurningOffset(direction * 5.);
 					}
-					proj.setWantedHeading(proj.getHeading() +  5. * direction);
 				}
 				
+				//TODO check if we collide with a wall regardless of the smoothing
+
 				
 			}
 			
+			Path orbit = new Path(proj.getProjections());
+			orbit.setInitialTick(0);
+			orbit.setDirection(ahead ? 1 : -1);
+			orbit.setStartingBearingOffset(Utils.normalRelativeAngleDegrees(angle - robot.getHeading()));
+			ret.add(orbit);
 	
 			for (tickProjection tick : proj.getProjections()) {
 				points.add(tick.getPosition());
@@ -116,6 +128,7 @@ public class Movement implements Observer{
 			
 		}
 		
+		return ret;
 		
 		
 		

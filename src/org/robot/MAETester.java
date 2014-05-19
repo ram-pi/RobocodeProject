@@ -37,7 +37,7 @@ public class MAETester extends AdvancedRobot {
 		turnFirst = preciseMAE.MAEturnFirst(bulletPosition, new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), (20 - 3 * bulletEnergy));
 		
 		//double bestHeading = robocode.util.Utils.normalAbsoluteAngleDegrees(Utils.absBearing(new Point2D.Double(getX(), getY()), bulletPosition) - 90);
-		double bestHeading = Utils.absBearingPerpendicular(new Point2D.Double(getX(), getY()), bulletPosition, getHeading());
+		double bestHeading = Utils.absBearingPerpendicular(new Point2D.Double(getX(), getY()), bulletPosition, 1);
 		
 		setTurnRight(robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - getHeading()));
 		setAhead(500);

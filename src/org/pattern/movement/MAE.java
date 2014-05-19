@@ -66,7 +66,7 @@ public class MAE {
 		this.velocity = velocity;
 
 
-		double bestHeading = Utils.absBearingPerpendicular(firingPosition, position, heading);
+		double bestHeading = Utils.absBearingPerpendicular(firingPosition, position, 1);
 
 		int wantedDirection = (int)Math.signum(velocity);
 		Projection projection = new Projection(position, heading, velocity, wantedDirection, robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - heading));
@@ -127,7 +127,7 @@ public class MAE {
 		this.heading = heading;
 		this.velocity = velocity;
 
-		double bestHeading = Utils.absBearingPerpendicular(firingPosition, position, heading);
+		double bestHeading = Utils.absBearingPerpendicular(firingPosition, position, 1);
 		double wantedAngle = robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - heading);
 
 		Projection projection = new Projection(position, heading, velocity, 1, robocode.util.Utils.normalRelativeAngleDegrees(bestHeading - heading));

@@ -8,6 +8,7 @@ import java.util.List;
 import org.pattern.utils.Utils;
 
 import robocode.Rules;
+import sun.net.www.protocol.http.HttpURLConnection.TunnelState;
 
 public class Projection {
 	
@@ -16,7 +17,15 @@ public class Projection {
 		private double velocity;
 		private Point2D position;
 		private int tick;
+		
+		private double turnOffset;
 
+		public double getTurnOffset() {
+			return turnOffset;
+		}
+		public void setTurnOffset(double turnOffset) {
+			this.turnOffset = turnOffset;
+		}
 		public int getTick() {
 			return tick;
 		}
@@ -52,6 +61,9 @@ public class Projection {
 	private double bearingOffset;
 	private double wantedHeading;
 	private double heading;
+	
+	private boolean turnChanged;
+	private double turnChangeOffset;
 	
 	public double getWantedHeading() {
 		return wantedHeading;
@@ -113,12 +125,17 @@ public class Projection {
 		this.velocity = velocity;
 		this.position = position;
 		this.heading = heading;
+		this.turnChanged = false;
 		
 		init();
-		
-
 	}
 	
+	public void setTurningOffset(double angle) {
+		this.wantedHeading += angle;
+		this.turnChangeOffset = angle;
+		this.turnChanged = true;
+		
+	}
 
 	public int getWantedDirection() {
 		return wantedDirection;
@@ -131,6 +148,7 @@ public class Projection {
 	public void init() {
 		
 		projections.clear();
+		turnChanged = false;
 		
 		
 		tickProjection zeroTick = new tickProjection();
@@ -169,6 +187,11 @@ public class Projection {
 		h = lastProjection.getHeading();
 		
 		double turnRate = 10 - 0.75 * Math.abs(v);
+		
+		if (turnChanged) {
+			turnChanged = false;
+			projection.setTurnOffset(turnChangeOffset);
+		}
 		
 		if (wantedHeading != h) {
 			int turningDir = wantedHeading > h ? 1 : -1;

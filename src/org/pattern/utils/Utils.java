@@ -26,14 +26,19 @@ public class Utils {
 		return theta; 
 	}
 
-	public static double absBearingPerpendicular (Point2D a, Point2D b, double heading) {
+	public static double absBearingPerpendicular (Point2D a, Point2D b, int direction) {
 		double theta = robocode.util.Utils.normalAbsoluteAngleDegrees((Utils.absBearing(a, b) - 90));
 
-		double offset = robocode.util.Utils.normalRelativeAngleDegrees(theta - heading);
+		
+		//Clockwise
 
-		if (Math.abs(offset) > 90)
-			theta -= 180;
-
+		if (direction == 1 && ((a.getX() < b.getX() && theta > 90 && theta < 270) || 
+				(a.getX() > b.getX() && (theta > 0 && theta < 90 || theta > 270 && theta < 360))) ) 
+					theta += 180;
+		if (direction == 0 && ((a.getX() < b.getX() && (theta > 0 && theta < 90 || theta > 270 && theta < 360)) ||
+				a.getX() > b.getX() && theta > 90 && theta < 270))
+				theta += 180;
+	
 		return robocode.util.Utils.normalAbsoluteAngleDegrees(theta);
 	}
 
