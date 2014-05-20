@@ -33,17 +33,18 @@ public class OrbitTester extends AdvancedRobot{
 		gBulletFiredEvent.setEnergy(2.0);
 		gBulletFiredEvent.setVelocity(20 - 3 * (2.0));
 		gBulletFiredEvent.setFiringTime(getTime());
+		gBulletFiredEvent.setFiringPosition(enemyPosition);
 		
 		movement.update(null, gBulletFiredEvent);
 
 		
 		while(true) {
-			if (getTime() % 15 == 0) {
-				
-				gBulletFiredEvent.setFiringTime(getTime());
-				
-				movement.update(null, gBulletFiredEvent);
-			}
+//			if (getTime() % 15 == 1) {
+//				
+//				gBulletFiredEvent.setFiringTime(getTime());
+//				
+//				movement.update(null, gBulletFiredEvent);
+//			}
 			
 			movement.doMovement();
 			execute();

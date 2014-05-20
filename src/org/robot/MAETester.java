@@ -37,6 +37,10 @@ public class MAETester extends AdvancedRobot {
 		preciseMAE = new MAE(bulletPosition, startPosition, getHeading(), getVelocity(), (20 - 3 * bulletEnergy), new Rectangle2D.Double(0, 0, getBattleFieldWidth(), getBattleFieldHeight()));
 		preciseMAE.wallSmoothStick();
 		
+		out.println("MAE: " + preciseMAE.getMAE());
+		out.println("CWMAE: " + preciseMAE.getCwMAE());
+		out.println("CCWMAE: " + preciseMAE.getCcwMAE());
+		
 		Path cwPath = new Path(preciseMAE.getCw());
 		cwPath.init(this);
 		

@@ -97,10 +97,11 @@ public class Radar extends Observable{
 		if (robot.getTime() - cachedRobot.getLastUpdated() < TIME_THRESHOLD && lastEnergy > currentEnergy) {
 			
 				GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
-				gBulletFiredEvent.setFiringRobot(new Enemy(event, robot));
+				gBulletFiredEvent.setFiringRobot(cachedRobot);
 				gBulletFiredEvent.setEnergy(lastEnergy - currentEnergy);
 				gBulletFiredEvent.setVelocity(20 - 3 * (lastEnergy - currentEnergy));
 				gBulletFiredEvent.setFiringTime(robot.getTime());
+				gBulletFiredEvent.setFiringPosition(cachedRobot.getPosition());//TODO this or the updated one?
 				setChanged();
 				notifyObservers(gBulletFiredEvent);
 		}
