@@ -54,6 +54,7 @@ public class Gargoyle extends AdvancedRobot {
 		// TODO Auto-generated method stub
 		super.onPaint(g);
 		movement.consumeOnPaintEvent(g);
+		shooting.getVirtualGun().consumeOnPaint(g);
 	}
 
 	public Radar getRadar() {
