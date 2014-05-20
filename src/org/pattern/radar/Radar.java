@@ -25,6 +25,7 @@ public class Radar extends Observable{
 	private Enemy lockedEnemy;
 	
 	static long TIME_THRESHOLD = 1000;
+	static int LOCKED_TIME_THREASHOLD = 10;
 	
 	
 	public Radar(AdvancedRobot robot) {
@@ -35,6 +36,12 @@ public class Radar extends Observable{
 	public void doScan() {
 		
 		if(lockedEnemy == null || lockedEnemy.isDead()) {
+			robot.setTurnRadarLeft(45);
+			return;
+		}
+		
+		if(robot.getTime() - lockedEnemy.getLastUpdated() > LOCKED_TIME_THREASHOLD){
+			lockedEnemy = null;
 			robot.setTurnRadarLeft(45);
 			return;
 		}
@@ -92,6 +99,8 @@ public class Radar extends Observable{
 		}
 		
 		
+		if (lockedEnemy == null) 
+			lockedEnemy = cachedRobot;
 		
 		double lastEnergy = cachedRobot.getEnergy();
 		double currentEnergy = event.getEnergy();

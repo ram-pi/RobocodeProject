@@ -89,12 +89,17 @@ public class Movement implements Observer{
 		int NUM_ORBIT = 5;
 		int direction = 1;
 		double MAX_OFFSET_FROM_PERPENDICULAR = 45.;
-
+		Point2D robotPosition = new Point2D.Double(robot.getX(), robot.getY());
 		//TODO add firing position 
-		double minAngle = org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(robot.getX(), robot.getY()), bullet.getFiringRobot().getPosition(), 1);
+		
 		Random rand = new Random(new Date().getTime());
 		LinkedList<Projection> candidatesProjections = new LinkedList<>();
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < NUM_ORBIT*2; i++) {
+			if (i == NUM_ORBIT) {
+				direction = 0;
+				
+			}
+			double minAngle = org.pattern.utils.Utils.absBearingPerpendicular(robotPosition, bullet.getFiringRobot().getPosition(), direction);
 			double offset = rand.nextDouble() * MAX_OFFSET_FROM_PERPENDICULAR;
 			double angle = minAngle + offset;
 
@@ -104,11 +109,11 @@ public class Movement implements Observer{
 				angle += 180;
 			}
 
-			Projection proj = new Projection(new Point2D.Double(robot.getX(), robot.getY()),
+			Projection proj = new Projection(robotPosition,
 					robot.getHeading(), 
 					robot.getVelocity(), 
 					ahead? 1 : -1, 
-							Utils.normalRelativeAngleDegrees(angle - robot.getHeading()));
+					Utils.normalRelativeAngleDegrees(angle - robot.getHeading()));
 
 			tickProjection tick = proj.projectNextTick();
 			
@@ -223,8 +228,10 @@ public class Movement implements Observer{
 
 	private Projection getLessDangerous(
 			LinkedList<Projection> candidatesProjections) {
-
-		return candidatesProjections.get(0);
+		Random r = new Random(new Date().getTime());
+		int random  = r.nextInt(candidatesProjections.size());
+		robot.out.println("choosed " + random);
+		return candidatesProjections.get(random);
 	}
 
 	private boolean goingPerpendicular(Point2D position, long l,
