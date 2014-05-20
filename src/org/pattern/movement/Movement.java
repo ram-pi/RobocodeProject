@@ -25,8 +25,6 @@ import robocode.util.Utils;
 
 public class Movement implements Observer{
 	private AdvancedRobot robot;
-	private List<GBulletFiredEvent> bullets;
-
 	private List<Point2D> points = new LinkedList<>();
 
 	private boolean surfing = false;
@@ -36,14 +34,12 @@ public class Movement implements Observer{
 
 	public Movement(AdvancedRobot robot) {
 		this.robot = robot;
-		bullets = new LinkedList<>();
 		waveSurfer = new WaveSurfer(robot);
 	}
 
 	@Override
 	public void update(Observable o, Object arg) {
 		if (arg instanceof GBulletFiredEvent) {
-			bullets.add((GBulletFiredEvent)arg);
 			waveSurfer.addWave((GBulletFiredEvent)(arg));
 		}
 	}
@@ -74,14 +70,6 @@ public class Movement implements Observer{
 			}
 			return;
 		}
-	}
-
-
-
-
-	private GBulletFiredEvent getNearestWave() {
-
-		return bullets.get(0);
 	}
 
 	private void doFallBackMovement() {
@@ -254,14 +242,14 @@ public class Movement implements Observer{
 
 	public void consumeOnPaintEvent(Graphics2D g) {
 
-		for (GBulletFiredEvent bullet : bullets) {
+		for (GBulletFiredEvent bullet : waveSurfer.getWaves()) {
 			double radius = bullet.getVelocity() * (robot.getTime() - bullet.getFiringTime());
 
 			/* the bullet is fired from cannon that is displaced 10px from the center of the robot */
 			radius += 10;
 
-			g.drawArc((int)(bullet.getFiringRobot().getX() - radius), (int)(bullet.getFiringRobot().getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
-			g.drawRect((int)bullet.getFiringRobot().getX(), (int)bullet.getFiringRobot().getY(), 10, 10);
+			g.drawArc((int)(bullet.getFiringPosition().getX() - radius), (int)(bullet.getFiringPosition().getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
+			g.drawRect((int)bullet.getFiringPosition().getX() - 5, (int)bullet.getFiringPosition().getY() - 5, 10, 10);
 		}
 
 		for (Point2D point : points) {
