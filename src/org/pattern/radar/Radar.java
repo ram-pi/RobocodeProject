@@ -100,7 +100,7 @@ public class Radar extends Observable{
 				gBulletFiredEvent.setFiringRobot(cachedRobot);
 				gBulletFiredEvent.setEnergy(lastEnergy - currentEnergy);
 				gBulletFiredEvent.setVelocity(20 - 3 * (lastEnergy - currentEnergy));
-				gBulletFiredEvent.setFiringTime(robot.getTime());
+				gBulletFiredEvent.setFiringTime(robot.getTime()-1);
 				gBulletFiredEvent.setFiringPosition(cachedRobot.getPosition());//TODO this or the updated one?
 				setChanged();
 				notifyObservers(gBulletFiredEvent);

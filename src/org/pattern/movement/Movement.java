@@ -91,7 +91,7 @@ public class Movement implements Observer{
 
 	private boolean insterctWithWave(Point2D position, long time, GBulletFiredEvent wave) {
 		double INTERSECT_THRESHOLD = 30;
-		if (Math.abs(position.distance(wave.getFiringPosition()) - time * wave.getVelocity()) < INTERSECT_THRESHOLD)
+		if (Math.abs(position.distance(wave.getFiringPosition()) - (time - wave.getFiringTime()) * wave.getVelocity()) < INTERSECT_THRESHOLD)
 			return true;
 		return false;
 	}
@@ -272,9 +272,6 @@ public class Movement implements Observer{
 		g.setColor(new Color(0, 255, 255));
 		g.drawRect((int)robot.getX()-4, (int)robot.getY()-4, 8, 8);
 		g.setColor(c);
-
-
-
 	}
 
 }
