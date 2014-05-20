@@ -2,6 +2,7 @@ package org.robot;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.Rectangle2D.Double;
@@ -9,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.pattern.movement.MAE;
+import org.pattern.movement.Path;
 import org.pattern.movement.Projection.tickProjection;
 import org.pattern.utils.Utils;
 
@@ -33,21 +35,16 @@ public class MAETester extends AdvancedRobot {
 		h = getHeading();
 		v = getVelocity();
 		preciseMAE = new MAE(bulletPosition, startPosition, getHeading(), getVelocity(), (20 - 3 * bulletEnergy), new Rectangle2D.Double(0, 0, getBattleFieldWidth(), getBattleFieldHeight()));
-		preciseMAE.noSmooth();
+		preciseMAE.wallSmoothStick();
+		
+		Path cwPath = new Path(preciseMAE.getCw());
+		cwPath.init(this);
 		
 		
-		double startAngle = org.pattern.utils.Utils.absBearingPerpendicular(startPosition, bulletPosition, 1);
-		
-			
-		boolean ahead = true;
-		if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(startAngle - getHeading())) > 90.) {
-			ahead = false;
-			startAngle += 180;
+		while(true) {
+			cwPath.followPath(this);
+			execute();
 		}
-		
-		setTurnRight(robocode.util.Utils.normalRelativeAngleDegrees(startAngle - getHeading()));
-		setAhead(ahead?1000:-1000);
-		execute();
 	
 	}
 	
@@ -68,6 +65,22 @@ public class MAETester extends AdvancedRobot {
 		g.drawArc((int)(bulletPosition.getX() - radius), (int)(bulletPosition.getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
 		g.drawLine((int)getX(), (int)getY(), (int)bulletPosition.getX(), (int)bulletPosition.getY());
 		
+		MAE asd = new MAE(bulletPosition, startPosition, getHeading(), getVelocity(), (20 - 3 * bulletEnergy) , new Rectangle2D.Double(0, getBattleFieldHeight(), getBattleFieldWidth(), getBattleFieldHeight()));
+		asd.wallSmoothStick();
+		
+		Rectangle2D battlefield = new Rectangle2D.Double(0, 0, getBattleFieldWidth(), getBattleFieldHeight());
+		Rectangle2D safeBF = new Rectangle2D.Double(18, 18, getBattleFieldWidth()-36, getBattleFieldHeight()-36);
+		
+
+		g.draw(safeBF);
+		
+		int dir = asd.getCw().getWantedDirection();
+		double directionHeading = dir == 1? getHeading() : getHeading() + 180;
+		double stickLenght = 160;
+		double xend=getX()+Math.sin(Math.toRadians(directionHeading))*stickLenght;
+		double yend=getY()+Math.cos(Math.toRadians(directionHeading))*stickLenght;
+		Line2D stick = new Line2D.Double(getX(), getY(), xend, yend);
+		g.draw(stick);
 	}
 	
 }
