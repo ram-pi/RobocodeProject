@@ -1,5 +1,7 @@
 package org.pattern.radar;
 
+import java.awt.geom.Point2D;
+
 import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
@@ -11,6 +13,7 @@ public class GBulletFiredEvent {
 	private double velocity;
 	private long firingTime;
 	private double energy;
+	private Point2D firingPosition;
 	
 	double getEnergy() {
 		return energy;
@@ -50,7 +53,14 @@ public class GBulletFiredEvent {
 	
 	public GBulletFiredEvent(ScannedRobotEvent event, AdvancedRobot robot) {
 		firingRobot = new Enemy(event, robot);
+	}
 
+	public Point2D getFiringPosition() {
+		return firingPosition;
+	}
+
+	public void setFiringPosition(Point2D firingPosition) {
+		this.firingPosition = firingPosition;
 	}
 
 	

@@ -8,6 +8,7 @@ import java.util.List;
 import org.pattern.utils.Utils;
 
 import robocode.Rules;
+import sun.net.www.protocol.http.HttpURLConnection.TunnelState;
 
 public class Projection {
 	
@@ -15,8 +16,17 @@ public class Projection {
 		private double heading;
 		private double velocity;
 		private Point2D position;
+		
 		private int tick;
+		
+		private double turnAdjust;
 
+		public double getTurnAjust() {
+			return turnAdjust;
+		}
+		public void setTurnAdjust(double turnAdjust) {
+			this.turnAdjust = turnAdjust;
+		}
 		public int getTick() {
 			return tick;
 		}
@@ -47,11 +57,47 @@ public class Projection {
 	
 	private List<tickProjection> projections;
 	private int wantedDirection;
+	private Point2D position;
+	private double velocity;
+	private double bearingOffset;
 	private double wantedHeading;
-
+	private double heading;
 	
 	public double getWantedHeading() {
 		return wantedHeading;
+	}
+
+	public Point2D getPosition() {
+		return position;
+	}
+
+	public void setPosition(Point2D position) {
+		this.position = position;
+	}
+
+	public double getVelocity() {
+		return velocity;
+	}
+
+	public void setVelocity(double velocity) {
+		this.velocity = velocity;
+	}
+
+	public double getBearingOffset() {
+		return bearingOffset;
+	}
+
+	public void setBearingOffset(double bearingOffset) {
+		this.bearingOffset = bearingOffset;
+		this.wantedHeading = heading+bearingOffset;
+	}
+
+	public double getHeading() {
+		return heading;
+	}
+
+	public void setHeading(double heading) {
+		this.heading = heading;
 	}
 
 	public void setWantedHeading(double wantedHeading) {
@@ -73,18 +119,20 @@ public class Projection {
 		this.projections = new  LinkedList<>();
 		this.wantedDirection = wantedDirection;
 		this.wantedHeading = heading+bearingOffset;
-		
-		tickProjection firstProjection = new tickProjection();
-		
-		firstProjection.setHeading(heading);
-		firstProjection.setPosition(position);
-		firstProjection.setVelocity(velocity);
-		firstProjection.setTick(0);
+		this.bearingOffset = bearingOffset;
+		this.velocity = velocity;
+		this.position = position;
+		this.heading = heading;
 		
 		
-		projections.add(firstProjection);
+		init();
 	}
 	
+	public void setTurningAdjustment(double angle) {
+		tickProjection last = projections.get(projections.size() - 1);
+		last.setTurnAdjust(angle);
+		this.wantedHeading += angle;
+	}
 
 	public int getWantedDirection() {
 		return wantedDirection;
@@ -92,6 +140,23 @@ public class Projection {
 
 	public void setWantedDirection(int wantedDirection) {
 		this.wantedDirection = wantedDirection;
+	}
+	
+	public void init() {
+		
+		projections.clear();
+
+		
+		
+		tickProjection zeroTick = new tickProjection();
+		
+		zeroTick.setHeading(heading);
+		zeroTick.setPosition(position);
+		zeroTick.setVelocity(velocity);
+		zeroTick.setTick(0);
+		
+		
+		projections.add(zeroTick);
 	}
 
 	public tickProjection projectNextTick() {
@@ -128,7 +193,7 @@ public class Projection {
 		}
 		        
 				
-		// updating velocity
+		// updating velocityh
 		
 		//check if we change from dec to acc
 		double decTime = Math.abs(v)/2.0;
