@@ -27,6 +27,7 @@ public class TheTester extends AdvancedRobot {
 	private Point2D.Double lastPosition;
 	private Point2D.Double nextPosition;
 	private Point2D.Double actualPosition;
+	private double oldDistance;
 	private double energy;
 
 	@Override
@@ -67,7 +68,7 @@ public class TheTester extends AdvancedRobot {
 
 		/* Movement Settings */
 		double distanceToNewPosition = actualPosition.distance(nextPosition);
-		if (distanceToNewPosition < 8) {
+		if (distanceToNewPosition < 8 || (actualPosition.distance(target.getPosition()) < oldDistance)) {
 			// Searching a new destination
 			Rectangle2D.Double battlefield = new Rectangle2D.Double(30, 30, getBattleFieldWidth() -60, getBattleFieldHeight() -60);
 			Point2D.Double testPoint;
@@ -77,11 +78,12 @@ public class TheTester extends AdvancedRobot {
 			while (i < 200) {
 				i++;
 				Random r = new Random(new Date().getTime());
-				double randomX = r.nextDouble()*getBattleFieldWidth()*distanceToTarget;
-				double randomY = r.nextDouble()*getBattleFieldHeight()*distanceToTarget;
+				double randomX = r.nextDouble()*getBattleFieldWidth();
+				double randomY = r.nextDouble()*getBattleFieldHeight();
 				testPoint = new Point2D.Double(randomX%getBattleFieldWidth(), randomY%getBattleFieldHeight());
 				if (battlefield.contains(testPoint) &&
-						(evaluatePosition(testPoint) < evaluatePosition(nextPosition))) {
+						(evaluatePosition(testPoint) <= evaluatePosition(nextPosition))) {
+					oldDistance = actualPosition.distance(target.getPosition());
 					nextPosition = testPoint;
 				}
 			}
@@ -106,8 +108,9 @@ public class TheTester extends AdvancedRobot {
 		for (String key : enemies.keySet()) {
 			Enemy tmp = enemies.get(key);
 			if (!tmp.isDead()) {
-				double distance = actualPosition.distance(tmp.getPosition2().getX(), tmp.getPosition2().getY());
-				eval += 1/Math.pow(distance, 2);
+				double dangerousEnemy = Math.min(tmp.getEnergy()/getEnergy(), 2);
+				double distance = p.distanceSq(tmp.getPosition());
+				eval += dangerousEnemy/distance;
 			}
 		}
 		return eval;
@@ -146,7 +149,7 @@ public class TheTester extends AdvancedRobot {
 
 	@Override
 	public void onPaint(Graphics2D g) {
-		g.drawLine((int)target.getX(), (int)target.getY(), (int)getX(), (int)getY());
+		//g.drawLine((int)target.getX(), (int)target.getY(), (int)getX(), (int)getY());
 		g.fillRect((int) nextPosition.getX(),(int) nextPosition.getY(), 10, 10);
 	}
 }
