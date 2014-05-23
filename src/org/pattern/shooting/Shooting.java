@@ -119,7 +119,7 @@ public class Shooting implements Observer {
 
 	public boolean checkPosition(Point2D p) {
 		if (p.getX() < 0 || p.getY() < 0 || p.getX() > robot.getBattleFieldWidth() || p.getY() > robot.getBattleFieldHeight()) {
-			System.out.println("The shooting point is over the battlefield!");
+			//System.out.println("The shooting point is over the battlefield!");
 			return false;
 		}
 

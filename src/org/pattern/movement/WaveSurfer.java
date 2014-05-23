@@ -27,7 +27,7 @@ public class WaveSurfer {
 		LinkedList<GBulletFiredEvent> bullet_copy = new LinkedList<>();
 		bullet_copy.addAll(bullets);
 		for (GBulletFiredEvent bullet : bullet_copy) {
-			if ((robot.getTime() - bullet.getFiringTime()) * bullet.getVelocity() > new Point2D.Double(robot.getX(), robot.getY()).distance(bullet.getFiringRobot().getPosition())) {
+			if ((robot.getTime() - bullet.getFiringTime()) * bullet.getVelocity() > new Point2D.Double(robot.getX(), robot.getY()).distance(bullet.getFiringPosition())) {
 				bullets.remove(bullet);
 			}
 		}

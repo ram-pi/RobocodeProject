@@ -7,6 +7,8 @@ import org.pattern.radar.Radar;
 import org.pattern.shooting.Shooting;
 
 import robocode.AdvancedRobot;
+import robocode.BulletHitEvent;
+import robocode.HitRobotEvent;
 import robocode.ScannedRobotEvent;
 
 public class MergBot extends AdvancedRobot {
@@ -41,6 +43,16 @@ public class MergBot extends AdvancedRobot {
 	public void onScannedRobot(ScannedRobotEvent event) {
 		radar.consumeScannedRobotEvent(event);
 		shooting.doShooting(event);
+	}
+	
+	@Override
+	public void onBulletHit(BulletHitEvent event) {
+		radar.consumeRobotHitEvent(event);
+	}
+	
+	@Override
+	public void onHitRobot(HitRobotEvent event) {
+		radar.consumeHitAnotherRobotEvent(event);
 	}
 	
 	@Override

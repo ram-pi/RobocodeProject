@@ -96,6 +96,7 @@ public class Enemy implements Comparable{
 		x=robot.getX()+Math.sin(absBearing)*distance;
 		y=robot.getY()+Math.cos(absBearing)*distance;
 		dead = false;
+		this.lastUpdated = robot.getTime();
 	}
 	
 	public Point getPosition(){

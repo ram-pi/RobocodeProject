@@ -25,8 +25,6 @@ import robocode.util.Utils;
 
 public class Movement implements Observer{
 	private AdvancedRobot robot;
-	private List<GBulletFiredEvent> bullets;
-
 	private List<Point2D> points = new LinkedList<>();
 
 	private boolean surfing = false;
@@ -36,14 +34,12 @@ public class Movement implements Observer{
 
 	public Movement(AdvancedRobot robot) {
 		this.robot = robot;
-		bullets = new LinkedList<>();
 		waveSurfer = new WaveSurfer(robot);
 	}
 
 	@Override
 	public void update(Observable o, Object arg) {
 		if (arg instanceof GBulletFiredEvent) {
-			bullets.add((GBulletFiredEvent)arg);
 			waveSurfer.addWave((GBulletFiredEvent)(arg));
 		}
 	}
@@ -76,14 +72,6 @@ public class Movement implements Observer{
 		}
 	}
 
-
-
-
-	private GBulletFiredEvent getNearestWave() {
-
-		return bullets.get(0);
-	}
-
 	private void doFallBackMovement() {
 		robot.setAhead(3.);
 		return;
@@ -101,12 +89,17 @@ public class Movement implements Observer{
 		int NUM_ORBIT = 5;
 		int direction = 1;
 		double MAX_OFFSET_FROM_PERPENDICULAR = 45.;
-
+		Point2D robotPosition = new Point2D.Double(robot.getX(), robot.getY());
 		//TODO add firing position 
-		double minAngle = org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(robot.getX(), robot.getY()), bullet.getFiringRobot().getPosition(), 1);
+		
 		Random rand = new Random(new Date().getTime());
 		LinkedList<Projection> candidatesProjections = new LinkedList<>();
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < NUM_ORBIT*2; i++) {
+			if (i == NUM_ORBIT) {
+				direction = 0;
+				
+			}
+			double minAngle = org.pattern.utils.Utils.absBearingPerpendicular(robotPosition, bullet.getFiringRobot().getPosition(), direction);
 			double offset = rand.nextDouble() * MAX_OFFSET_FROM_PERPENDICULAR;
 			double angle = minAngle + offset;
 
@@ -116,11 +109,11 @@ public class Movement implements Observer{
 				angle += 180;
 			}
 
-			Projection proj = new Projection(new Point2D.Double(robot.getX(), robot.getY()),
+			Projection proj = new Projection(robotPosition,
 					robot.getHeading(), 
 					robot.getVelocity(), 
 					ahead? 1 : -1, 
-							Utils.normalRelativeAngleDegrees(angle - robot.getHeading()));
+					Utils.normalRelativeAngleDegrees(angle - robot.getHeading()));
 
 			tickProjection tick = proj.projectNextTick();
 			
@@ -235,8 +228,10 @@ public class Movement implements Observer{
 
 	private Projection getLessDangerous(
 			LinkedList<Projection> candidatesProjections) {
-
-		return candidatesProjections.get(0);
+		Random r = new Random(new Date().getTime());
+		int random  = r.nextInt(candidatesProjections.size());
+		robot.out.println("choosed " + random);
+		return candidatesProjections.get(random);
 	}
 
 	private boolean goingPerpendicular(Point2D position, long l,
@@ -254,14 +249,14 @@ public class Movement implements Observer{
 
 	public void consumeOnPaintEvent(Graphics2D g) {
 
-		for (GBulletFiredEvent bullet : bullets) {
+		for (GBulletFiredEvent bullet : waveSurfer.getWaves()) {
 			double radius = bullet.getVelocity() * (robot.getTime() - bullet.getFiringTime());
 
 			/* the bullet is fired from cannon that is displaced 10px from the center of the robot */
 			radius += 10;
 
-			g.drawArc((int)(bullet.getFiringRobot().getX() - radius), (int)(bullet.getFiringRobot().getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
-			g.drawRect((int)bullet.getFiringRobot().getX(), (int)bullet.getFiringRobot().getY(), 10, 10);
+			g.drawArc((int)(bullet.getFiringPosition().getX() - radius), (int)(bullet.getFiringPosition().getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
+			g.drawRect((int)bullet.getFiringPosition().getX() - 5, (int)bullet.getFiringPosition().getY() - 5, 10, 10);
 		}
 
 		for (Point2D point : points) {

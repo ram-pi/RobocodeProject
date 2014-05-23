@@ -8,6 +8,8 @@ import java.util.Observable;
 import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
+import robocode.BulletHitEvent;
+import robocode.HitRobotEvent;
 import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 
@@ -23,6 +25,7 @@ public class Radar extends Observable{
 	private Enemy lockedEnemy;
 	
 	static long TIME_THRESHOLD = 1000;
+	static int LOCKED_TIME_THREASHOLD = 10;
 	
 	
 	public Radar(AdvancedRobot robot) {
@@ -33,6 +36,12 @@ public class Radar extends Observable{
 	public void doScan() {
 		
 		if(lockedEnemy == null || lockedEnemy.isDead()) {
+			robot.setTurnRadarLeft(45);
+			return;
+		}
+		
+		if(robot.getTime() - lockedEnemy.getLastUpdated() > LOCKED_TIME_THREASHOLD){
+			lockedEnemy = null;
 			robot.setTurnRadarLeft(45);
 			return;
 		}
@@ -90,11 +99,15 @@ public class Radar extends Observable{
 		}
 		
 		
+		if (lockedEnemy == null) 
+			lockedEnemy = cachedRobot;
 		
 		double lastEnergy = cachedRobot.getEnergy();
 		double currentEnergy = event.getEnergy();
 	
-		if (robot.getTime() - cachedRobot.getLastUpdated() < TIME_THRESHOLD && lastEnergy > currentEnergy) {
+		if (robot.getTime() - cachedRobot.getLastUpdated() < TIME_THRESHOLD && 
+				(lastEnergy - currentEnergy) > 0. &&
+				(lastEnergy - currentEnergy) < 3.1) {
 			
 				GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
 				gBulletFiredEvent.setFiringRobot(cachedRobot);
@@ -112,6 +125,13 @@ public class Radar extends Observable{
 
 	}
 
+	public void consumeHitAnotherRobotEvent(HitRobotEvent event) {
+		String name = event.getName();
+		Enemy cachedRobot = getEnemies().get(name);
+		
+		cachedRobot.setEnergy(event.getEnergy());
+		return;
+	}
 	private Point calculateEnemyPosition(ScannedRobotEvent event) {
 		
 		
@@ -137,6 +157,14 @@ public class Radar extends Observable{
 	public void consumeRobotDeathEvent(RobotDeathEvent event) {
 		Enemy enemy = enemies.get(event.getName());
 		enemy.setDead(true);
+	}
+	
+	public void consumeRobotHitEvent(BulletHitEvent event) {
+		String name = event.getName();
+		Enemy cachedRobot = getEnemies().get(name);
+		
+		cachedRobot.setEnergy(event.getEnergy());
+		return;
 	}
 		
 	public AdvancedRobot getRobot() {
