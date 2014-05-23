@@ -1,6 +1,7 @@
 package org.robot;
 
 import java.awt.Point;
+import java.awt.geom.Point2D;
 
 import robocode.AdvancedRobot;
 import robocode.ScannedRobotEvent;
@@ -100,6 +101,10 @@ public class Enemy implements Comparable{
 	public Point getPosition(){
 		return new Point((int)x,(int)y);
 	} 
+	
+	public Point2D.Double getPosition2() {
+		return new Point2D.Double(x, y);
+	}
 
 
 	public double getBearing() {
