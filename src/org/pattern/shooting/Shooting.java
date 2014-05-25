@@ -54,7 +54,7 @@ public class Shooting implements Observer {
 						robot.getX(), robot.getX()), bulletPower, robot.getTime(),
 						new Point2D.Double(enemy.getX(), enemy.getY()));
 		headOnTargetVG.getBullets().add(b);
-		System.out.println("Bullet added to headOnTarget VirtualGun");
+		//System.out.println("Bullet added to headOnTarget VirtualGun");
 	}
 
 	public void doShooting(ScannedRobotEvent e) {

@@ -13,10 +13,14 @@ import robocode.HitByBulletEvent;
 public class WaveSurfer {
 	private AdvancedRobot robot;
 	private List<GBulletFiredEvent> bullets;
+	private double[] stats;
+
+	private int NUM_BINS = 43;
 	
 	public WaveSurfer(AdvancedRobot robot) {
 		this.robot = robot;
 		bullets = new LinkedList<>();
+		stats = new double[NUM_BINS];
 	}
 	public void addWave(GBulletFiredEvent bullet) {
 		bullets.add(bullet);

@@ -57,7 +57,7 @@ public class MergBot extends AdvancedRobot {
 	
 	@Override
 	public void onPaint(Graphics2D g) {
-		shooting.getVirtualGun().consumeOnPaint(g);
+		//shooting.getVirtualGun().consumeOnPaint(g);
 		movement.consumeOnPaintEvent(g);
 	}
 	

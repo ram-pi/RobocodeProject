@@ -44,7 +44,7 @@ public class Path {
 		
 		long relativeTick = tick - startingTick;
 		//Start of the path
-		if (actualTime == startingTick) {
+ 		if (actualTime == startingTick) {
 			robot.setTurnRight(projection.getBearingOffset());
 			robot.setAhead(projection.getWantedDirection()*100);
 			return;
@@ -63,7 +63,7 @@ public class Path {
 		double adjustAngle = tickProjection.getTurnAjust();
 		if (adjustAngle > 0) {
 			robot.setTurnRight(robot.getTurnRemaining()+adjustAngle);
-			robot.out.println("Movement: set adjustment at tick " + robot.getTime());
+			robot.out.println("Movement: set adjustment at tick " + robot.getTime() + " relative tick: " + relativeTick);
 		}
 		return;
 		

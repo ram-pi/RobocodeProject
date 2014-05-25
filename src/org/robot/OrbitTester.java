@@ -3,6 +3,7 @@ package org.robot;
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.util.List;
+import java.util.Random;
 
 import org.pattern.movement.Movement;
 import org.pattern.movement.Path;
@@ -37,15 +38,16 @@ public class OrbitTester extends AdvancedRobot{
 		
 		movement.update(null, gBulletFiredEvent);
 
+		int lastBulletFired = 0;
+		
+		Random r = new Random();
 		
 		while(true) {
-//			if (getTime() % 15 == 1) {
-//				
-//				gBulletFiredEvent.setFiringTime(getTime());
-//				
-//				movement.update(null, gBulletFiredEvent);
-//			}
-			
+
+			if (getTime() - lastBulletFired> 30) {
+				gBulletFiredEvent.setFiringPosition(new Point2D.Double(r.nextInt((int)getBattleFieldWidth()), r.nextInt((int)getBattleFieldWidth())));
+				movement.update(null, gBulletFiredEvent);
+			}
 			movement.doMovement();
 			execute();
 		}		
