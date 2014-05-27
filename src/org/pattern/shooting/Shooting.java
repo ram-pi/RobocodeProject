@@ -79,6 +79,8 @@ public class Shooting implements Observer {
 	public void checkBestShooting() {
 		if (headOnTargetVG.getRatio() > 0.5)
 			type = shooterType.HeadOnTarget;
+		else 
+			type = shooterType.Circular;
 	}
 
 	public void addBullet() {
