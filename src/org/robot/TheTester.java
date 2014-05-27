@@ -2,20 +2,12 @@ package org.robot;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-import java.util.Map.Entry;
 
-import javax.xml.crypto.Data;
-
-import com.sun.org.apache.xalan.internal.xsltc.runtime.Hashtable;
+import org.pattern.movement.PositionFinder;
 
 import robocode.AdvancedRobot;
-import robocode.DeathEvent;
 import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
@@ -39,11 +31,13 @@ public class TheTester extends AdvancedRobot {
 		enemies = new java.util.Hashtable<String, Enemy>();
 
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+
 		lastPosition = nextPosition = actualPosition = new Point2D.Double(getX(), getY());
 
 		target = new Enemy();
 
 		while (true) {
+			lastPosition = actualPosition;
 			actualPosition = new Point2D.Double(getX(), getY());
 			energy = getEnergy();
 
@@ -59,6 +53,7 @@ public class TheTester extends AdvancedRobot {
 	private void doSomething() {
 		energy = getEnergy();
 		double distanceToTarget = actualPosition.distance(target.getPosition());
+		Boolean forceSearching = false;
 
 		/* Perform head on target for gun movement */
 		double turnGunAmt = (getHeadingRadians() + target.getBearingRadians() - getGunHeadingRadians());
@@ -66,29 +61,19 @@ public class TheTester extends AdvancedRobot {
 			setTurnGunRightRadians(turnGunAmt);
 		}
 
-		/* Movement Settings */
+		/* Movement Settings, find the next position */
 		double distanceToNewPosition = actualPosition.distance(nextPosition);
-		if (distanceToNewPosition < 8 || (actualPosition.distance(target.getPosition()) < oldDistance)) {
-			// Searching a new destination
-			Rectangle2D.Double battlefield = new Rectangle2D.Double(30, 30, getBattleFieldWidth() -60, getBattleFieldHeight() -60);
-			Point2D.Double testPoint;
+		if (distanceToNewPosition < 15 || forceSearching) {
+			PositionFinder p = new PositionFinder(enemies, this);
+			//Point2D.Double testPoint = p.findBestPoint(200);
+			Point2D.Double testPoint = p.findBestPointInRange(200, 100.0);
+			nextPosition = testPoint;
+			lastPosition = actualPosition;
+			forceSearching = false;
+		}
 
-			// Generate random point and evaluate the risk going in that point
-			int i = 0;
-			while (i < 200) {
-				i++;
-				Random r = new Random(new Date().getTime());
-				double randomX = r.nextDouble()*getBattleFieldWidth();
-				double randomY = r.nextDouble()*getBattleFieldHeight();
-				testPoint = new Point2D.Double(randomX%getBattleFieldWidth(), randomY%getBattleFieldHeight());
-				if (battlefield.contains(testPoint) &&
-						(evaluatePosition(testPoint) <= evaluatePosition(nextPosition))) {
-					oldDistance = actualPosition.distance(target.getPosition());
-					nextPosition = testPoint;
-				}
-			}
-			lastPosition = actualPosition;	
-		} else {
+		/* Movement to nextPosition */
+		else {
 			double angle = calcAngle(nextPosition, actualPosition) - getHeadingRadians();
 			double direction = 1;
 
@@ -100,6 +85,7 @@ public class TheTester extends AdvancedRobot {
 			angle = Utils.normalRelativeAngle(angle);
 			setTurnRightRadians(angle);
 		}
+
 	}
 
 	public double evaluatePosition(Point2D.Double p) {
@@ -124,9 +110,10 @@ public class TheTester extends AdvancedRobot {
 			enemies.put(target.getName(), target);
 		}
 
-		Point2D enemyPos = calcPoint(actualPosition, e.getDistance(), getHeadingRadians() + e.getBearingRadians());
+		//Point2D enemyPos = calcPoint(actualPosition, e.getDistance(), getHeadingRadians() + e.getBearingRadians());
 
-		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
+		if (getOthers() == 0)
+			setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 
 		if (getGunHeat() == 0) {
 			fire(3.0);
