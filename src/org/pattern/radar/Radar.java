@@ -24,6 +24,14 @@ public class Radar extends Observable{
 	
 	private Enemy lockedEnemy;
 	
+	public Enemy getLockedEnemy() {
+		return lockedEnemy;
+	}
+
+	public void setLockedEnemy(Enemy lockedEnemy) {
+		this.lockedEnemy = lockedEnemy;
+	}
+
 	static long TIME_THRESHOLD = 1000;
 	static int LOCKED_TIME_THREASHOLD = 10;
 	
@@ -71,6 +79,7 @@ public class Radar extends Observable{
 		}
 		
 		/* move somehow to init scan */
+		
 		if (scanBearing == 0)
 			scanBearing = .5;
 		

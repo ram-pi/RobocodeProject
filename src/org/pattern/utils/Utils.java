@@ -35,7 +35,7 @@ public class Utils {
 		if (direction == 1 && ((a.getX() < b.getX() && theta > 90 && theta < 270) || 
 				(a.getX() > b.getX() && (theta > 0 && theta < 90 || theta > 270 && theta < 360))) ) 
 					theta += 180;
-		if (direction == 0 && ((a.getX() < b.getX() && (theta > 0 && theta < 90 || theta > 270 && theta < 360)) ||
+		if (direction == -1 && ((a.getX() < b.getX() && (theta > 0 && theta < 90 || theta > 270 && theta < 360)) ||
 				a.getX() > b.getX() && theta > 90 && theta < 270))
 				theta += 180;
 	

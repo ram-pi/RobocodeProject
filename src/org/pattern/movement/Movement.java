@@ -101,7 +101,7 @@ public class Movement implements Observer{
 		LinkedList<Projection> candidatesProjections = new LinkedList<>();
 		for (int i = 0; i < NUM_ORBIT*2; i++) {
 			if (i == NUM_ORBIT) {
-				direction = 0;
+				direction = -1;
 
 			}
 
