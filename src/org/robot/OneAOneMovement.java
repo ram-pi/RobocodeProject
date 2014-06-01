@@ -33,6 +33,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 	boolean followRandom = false;
 	boolean fire = false;
 	Radar radar;
+	
+	double maxDistance;
 
 	public OneAOneMovement() {
 		radar = new Radar(this);
@@ -55,7 +57,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		setAdjustGunForRobotTurn(true);
 		int cw = 1;
 		Random r = new Random();
-
+		maxDistance = Math.sqrt(getBattleFieldWidth()*getBattleFieldWidth()+getBattleFieldHeight()*getBattleFieldHeight());
 		
 
 		while(true) {
@@ -119,12 +121,12 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 				if (!smoothC1 && !smoothC2) {
 					_ahead = ahead * -100;
 					System.out.println("No way out");
-				} else if (smoothC1) {
-					if (getTurnRemaining()+_turnRight > -4)
+				} else if (smoothC1 && ahead == 1 || smoothC2 && ahead == -1) {
+					if (_turnRight > -4)
 						_turnRight = -4;
 	
-				} else if (smoothC2) {
-					if (getTurnRemaining()+_turnRight < 4)
+				} else if (smoothC2 && ahead == 1 || smoothC1 && ahead == -1) {
+					if (_turnRight < 4)
 						_turnRight = 4;
 				}
 			}
@@ -170,11 +172,21 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		
 		Enemy e = new Enemy(event, this);
 
-		double angle = getAimingBearing(event,1.2);
+		double distance = event.getDistance();
+		
+		double firePower = 0;
+		
+		if (getEnergy() < 30)
+			firePower = 1.;
+		else
+			firePower = 3 - (distance / maxDistance) * 3; 
+				
+				
+		double angle = getAimingBearing(event, firePower);
 		setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(angle - getGunHeading()));
 		
 		if (getGunHeat() == 0) {
-			setFire(1.2);
+			setFire(firePower);
 		}
 	}
 	

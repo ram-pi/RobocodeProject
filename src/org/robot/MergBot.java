@@ -1,5 +1,4 @@
 package org.robot;
-
 import java.awt.Graphics2D;
 
 import org.pattern.movement.Movement;
