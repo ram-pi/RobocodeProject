@@ -2,6 +2,7 @@ package org.pattern.radar;
 
 import java.awt.geom.Point2D;
 
+import org.pattern.movement.MAE;
 import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
@@ -14,7 +15,17 @@ public class GBulletFiredEvent {
 	private long firingTime;
 	private double energy;
 	private Point2D firingPosition;
+	private Point2D targetPosition;
 	
+	public Point2D getTargetPosition() {
+		return targetPosition;
+	}
+
+	public void setTargetPosition(Point2D targetPosition) {
+		this.targetPosition = targetPosition;
+	}
+
+
 	double getEnergy() {
 		return energy;
 	}
@@ -53,6 +64,7 @@ public class GBulletFiredEvent {
 	
 	public GBulletFiredEvent(ScannedRobotEvent event, AdvancedRobot robot) {
 		firingRobot = new Enemy(event, robot);
+		targetPosition = new Point2D.Double(robot.getX(), robot.getY());
 	}
 
 	public Point2D getFiringPosition() {

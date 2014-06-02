@@ -1,6 +1,7 @@
 package org.pattern.movement;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
 import java.util.List;
 
