@@ -16,7 +16,24 @@ public class GBulletFiredEvent {
 	private double energy;
 	private Point2D firingPosition;
 	private Point2D targetPosition;
+	private double minMAE, maxMAE;
 	
+	public double getMinMAE() {
+		return minMAE;
+	}
+
+	public void setMinMAE(double minMAE) {
+		this.minMAE = minMAE;
+	}
+
+	public double getMaxMAE() {
+		return maxMAE;
+	}
+
+	public void setMaxMAE(double maxMAE) {
+		this.maxMAE = maxMAE;
+	}
+
 	public Point2D getTargetPosition() {
 		return targetPosition;
 	}

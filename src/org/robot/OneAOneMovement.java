@@ -61,11 +61,70 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 			lastBulletFiredTime = getTime();
 			bulletJustFired = true;
 			GBulletFiredEvent wave = (GBulletFiredEvent)arg1;
+			setWaveMAE(wave);
 			waves.addWave(wave);
 			
 		}
 	}
 	
+	private void setWaveMAE(GBulletFiredEvent wave) {
+		
+		int _ahead;
+		double mae[] = new double[2];
+		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection+=2) {
+			
+			double angle = org.pattern.utils.Utils.absBearingPerpendicular(wave.getTargetPosition(), wave.getFiringPosition(), orbitDirection);
+			
+			_ahead = 1;				
+			if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - getHeading())) > 90) {
+				_ahead = -1;
+				angle += 180;
+			}
+
+			angle = robocode.util.Utils.normalRelativeAngleDegrees(angle - getHeading());
+			//TODO use values 2 ticks before detecting the wave
+			Projection projection = new Projection(wave.getTargetPosition(), 
+					getHeading(),
+					getVelocity(),
+					_ahead,
+					angle);
+			
+			tickProjection tick = projection.projectNextTick();
+			
+			while(tick.getPosition().distance(wave.getFiringPosition()) > tick.getTick() * wave.getVelocity()) {
+				tick = projection.projectNextTick();
+				
+				if (stickCollide(tick.getPosition(), _ahead == 1 ? tick.getHeading() : tick.getHeading()+180)) {
+					Point2D center1 = new Point2D.Double(tick.getPosition().getX() + Math.sin(Math.toRadians(tick.getHeading()-90))*MINIMUM_RADIUS,
+							tick.getPosition().getY() + Math.cos(Math.toRadians(tick.getHeading()-90))*MINIMUM_RADIUS);
+					Point2D center2 = new Point2D.Double(tick.getPosition().getX() + Math.sin(Math.toRadians(tick.getHeading()+90))*MINIMUM_RADIUS,
+							tick.getPosition().getY() + Math.cos(Math.toRadians(tick.getHeading()+90))*MINIMUM_RADIUS);
+					Boolean smoothC1 = canSmooth(center1);
+					Boolean smoothC2 = canSmooth(center2);
+					if (!smoothC1 && !smoothC2) {
+						projection.setWantedDirection(_ahead * -1);
+						
+					} else if (smoothC1 && _ahead == 1 || smoothC2 && _ahead == -1) {
+						if (projection.getWantedHeading() - tick.getHeading() > -4) {
+							projection.setWantedDirection(_ahead);
+							projection.setWantedHeading(tick.getHeading() -4);
+						}
+		
+					} else if (smoothC2 && _ahead == 1 || smoothC1 && _ahead == -1) {
+						if (projection.getWantedHeading() - tick.getHeading() < 4) {
+							projection.setWantedDirection(_ahead);
+							projection.setWantedHeading(tick.getHeading() + 4);
+						}
+					}
+				}
+			}
+			
+			mae[orbitDirection == -1 ? 0 : 1] = firingOffset(wave.getFiringPosition(), wave.getTargetPosition(), tick.getPosition());
+		}
+		wave.setMinMAE(Math.min(mae[0], mae[1]));
+		wave.setMaxMAE(Math.max(mae[0], mae[1]));
+		return;
+	}
 	
 	@Override
 	public void run() {
@@ -206,7 +265,13 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		}
 		
 		double firingOffset = firingOffset(nearestWave.getFiringPosition(), nearestWave.getTargetPosition(), tick.getPosition());
-		out.println(firingOffset);
+		
+		
+		out.println("FiringOff: "+firingOffset);
+		double _mae = firingOffset > 0 ? nearestWave.getMaxMAE() : nearestWave.getMinMAE();
+		out.println("MAE: " + _mae);
+		out.println("GF: " + (firingOffset > 0 ? firingOffset/_mae : - firingOffset/_mae));
+		out.println();
 		
 		Rectangle2D _fpos = new Rectangle2D.Double(nearestWave.getFiringPosition().getX()-6, nearestWave.getFiringPosition().getY()-6, 12, 12);
 		toDraw.add(_fpos);
@@ -337,10 +402,25 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		
 		GBulletFiredEvent wave = waves.getNearestWave();
 		
+		int maeLength = 200;
 		if (wave != null) {
 			double radius = wave.getVelocity() * (getTime() - wave.getFiringTime());
 			g.drawArc((int)(wave.getFiringPosition().getX() - radius), (int)(wave.getFiringPosition().getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
 			g.drawRect((int)wave.getFiringPosition().getX() - 5, (int)wave.getFiringPosition().getY() - 5, 10, 10);
+			
+			
+			double absBearing = Utils.absBearing(wave.getFiringPosition(), wave.getTargetPosition());
+			
+			//draw MAE
+			g.drawLine((int)wave.getFiringPosition().getX(), 
+					(int)wave.getFiringPosition().getY(), 
+					(int)(wave.getFiringPosition().getX() + Math.sin(Math.toRadians(absBearing + wave.getMaxMAE())) * maeLength), 
+					(int)(wave.getFiringPosition().getY() + Math.cos(Math.toRadians(absBearing + wave.getMaxMAE())) * maeLength));
+			
+			g.drawLine((int)wave.getFiringPosition().getX(), 
+					(int)wave.getFiringPosition().getY(), 
+					(int)(wave.getFiringPosition().getX() + Math.sin(Math.toRadians(absBearing + wave.getMinMAE())) * maeLength), 
+					(int)(wave.getFiringPosition().getY() + Math.cos(Math.toRadians(absBearing + wave.getMinMAE())) * maeLength));
 		}
 		
 		for (Shape s : toDraw) {
