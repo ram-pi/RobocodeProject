@@ -41,9 +41,11 @@ public class WaveSurfer {
 	public GBulletFiredEvent getNearestWave() {
 		double min = Double.MAX_VALUE;
 		GBulletFiredEvent ret = null;
+		Point2D myPos = new Point2D.Double(robot.getX(), robot.getY());
 		for (GBulletFiredEvent bullet : bullets) {
-			if ((robot.getTime() - bullet.getFiringTime()) * bullet.getVelocity() < min ) {
-				min = (robot.getTime() - bullet.getFiringTime()) * bullet.getVelocity();
+			double distance = bullet.getFiringPosition().distance(myPos) - (robot.getTime() - bullet.getFiringTime()) * bullet.getVelocity();
+			if (distance < min ) {
+				min = distance;
 				ret = bullet;
 			}
 		}
@@ -63,6 +65,10 @@ public class WaveSurfer {
 	}
 	
 	public void consumeBulletHitBulletEvent(BulletHitBulletEvent event) {
+		
+	}
+	public void hit(double gf) {
+		robot.out.println("Hitted with gf: " + gf);
 		
 	}
 }

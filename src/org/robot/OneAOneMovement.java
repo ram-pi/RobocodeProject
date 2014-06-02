@@ -20,9 +20,11 @@ import org.pattern.radar.GBulletFiredEvent;
 import org.pattern.radar.Radar;
 import org.pattern.utils.Utils;
 
+import com.sun.corba.se.impl.interceptors.PINoOpHandlerImpl;
 import com.sun.xml.internal.messaging.saaj.packaging.mime.Header;
 
 import robocode.AdvancedRobot;
+import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
 import robocode.ScannedRobotEvent;
 import sun.font.EAttribute;
@@ -65,6 +67,23 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 			waves.addWave(wave);
 			
 		}
+	}
+	
+	@Override
+	public void onHitByBullet(HitByBulletEvent event) {
+		GBulletFiredEvent wave = waves.getNearestWave(); 		
+		Point2D myPos = new Point2D.Double(getX(), getY());
+		
+		//TODO we lost a wave
+		if (Math.abs(myPos.distance(wave.getFiringPosition()) - (getTime() - wave.getFiringTime()) * wave.getVelocity()) > 50)
+			return;
+		
+		double firingOffset = firingOffset(wave.getFiringPosition(), wave.getTargetPosition(), myPos);
+		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE() : - firingOffset / wave.getMinMAE();
+		
+		waves.hit(gf);
+		
+		
 	}
 	
 	private void setWaveMAE(GBulletFiredEvent wave) {
@@ -412,6 +431,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 			double absBearing = Utils.absBearing(wave.getFiringPosition(), wave.getTargetPosition());
 			
 			//draw MAE
+			Color c = g.getColor();
+			g.setColor(new Color(255,0,0));
 			g.drawLine((int)wave.getFiringPosition().getX(), 
 					(int)wave.getFiringPosition().getY(), 
 					(int)(wave.getFiringPosition().getX() + Math.sin(Math.toRadians(absBearing + wave.getMaxMAE())) * maeLength), 
@@ -421,6 +442,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 					(int)wave.getFiringPosition().getY(), 
 					(int)(wave.getFiringPosition().getX() + Math.sin(Math.toRadians(absBearing + wave.getMinMAE())) * maeLength), 
 					(int)(wave.getFiringPosition().getY() + Math.cos(Math.toRadians(absBearing + wave.getMinMAE())) * maeLength));
+			g.setColor(c);
 		}
 		
 		for (Shape s : toDraw) {
