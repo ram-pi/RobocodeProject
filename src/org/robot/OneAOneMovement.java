@@ -50,6 +50,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 	
 	WaveSurfer waves;
 	
+	
 	double maxDistance;
 
 	public OneAOneMovement() {
@@ -72,11 +73,11 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 	
 	@Override
 	public void onBulletHitBullet(BulletHitBulletEvent event) {
-		Point2D bulletPosition = new Point2D.Double(getX(), getY());
+		Point2D bulletPosition = new Point2D.Double(event.getBullet().getX(), event.getBullet().getY());
 		
 		GBulletFiredEvent hittedWave = null;
 		for (GBulletFiredEvent wave : waves.getWaves()) {
-			if (Math.abs(bulletPosition.distance(wave.getFiringPosition()) - (getTime() - wave.getFiringTime() * getVelocity())) < 30) {
+			if (Math.abs(bulletPosition.distance(wave.getFiringPosition()) - ((getTime() - wave.getFiringTime()) * event.getBullet().getVelocity())) < 20) {
 				hittedWave = wave;
 				break;
 			}
