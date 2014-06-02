@@ -78,15 +78,17 @@ public class WaveSurfer {
 		
 	}
 	public void hit(double gf) {
+		
 		int bin = (int)(gf * NUM_BINS/2.);
 		bin += NUM_BINS/2;
 		
 		for(int i = 0; i < NUM_BINS; i++) {
+			storage[i] /= 3.;
 			if (i == bin) {
 				storage[i] = 1;
 				continue;
 			}
-				
+			
 			storage[i] += 1./(Math.abs(bin - i)*2);
 		}
 	}
