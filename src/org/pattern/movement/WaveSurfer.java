@@ -14,14 +14,14 @@ import robocode.HitByBulletEvent;
 public class WaveSurfer {
 	private AdvancedRobot robot;
 	private List<GBulletFiredEvent> bullets;
-	private double[] stats;
+	private double[] storage;
 
 	private int NUM_BINS = 43;
 	
 	public WaveSurfer(AdvancedRobot robot) {
 		this.robot = robot;
 		bullets = new LinkedList<>();
-		stats = new double[NUM_BINS];
+		storage = new double[NUM_BINS];
 	}
 	public void addWave(GBulletFiredEvent bullet) {
 		bullets.add(bullet);
@@ -56,8 +56,18 @@ public class WaveSurfer {
 		return bullets;
 	}
 	
-	public int getDanger(Point2D intersection, GBulletFiredEvent wave) {
-		return 0;
+	public double getDanger(double gf) {
+		double danger = 0;
+		int bin = (int)(gf * NUM_BINS/2);
+		bin += NUM_BINS/2;
+
+		int startBin = Math.max(bin-4, 0);
+		int endBin = Math.min(bin+4, NUM_BINS);
+		
+		for (int i = startBin; i < endBin; i++) {
+			danger += storage[i];
+		}
+		return danger;
 	}
 	
 	public void consumeOnHitEvent(HitByBulletEvent event) {
@@ -68,7 +78,16 @@ public class WaveSurfer {
 		
 	}
 	public void hit(double gf) {
-		robot.out.println("Hitted with gf: " + gf);
+		int bin = (int)(gf * NUM_BINS/2.);
+		bin += NUM_BINS/2;
 		
+		for(int i = 0; i < NUM_BINS; i++) {
+			if (i == bin) {
+				storage[i] = 1;
+				continue;
+			}
+				
+			storage[i] += 1./(Math.abs(bin - i)*2);
+		}
 	}
 }

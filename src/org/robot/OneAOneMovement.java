@@ -24,6 +24,7 @@ import com.sun.corba.se.impl.interceptors.PINoOpHandlerImpl;
 import com.sun.xml.internal.messaging.saaj.packaging.mime.Header;
 
 import robocode.AdvancedRobot;
+import robocode.BulletHitBulletEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
 import robocode.ScannedRobotEvent;
@@ -70,6 +71,31 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 	}
 	
 	@Override
+	public void onBulletHitBullet(BulletHitBulletEvent event) {
+		Point2D bulletPosition = new Point2D.Double(getX(), getY());
+		
+		GBulletFiredEvent hittedWave = null;
+		for (GBulletFiredEvent wave : waves.getWaves()) {
+			if (Math.abs(bulletPosition.distance(wave.getFiringPosition()) - (getTime() - wave.getFiringTime() * getVelocity())) < 30) {
+				hittedWave = wave;
+				break;
+			}
+		}
+		
+		if (hittedWave == null)
+			return;
+		
+		double firingOffset = firingOffset(hittedWave.getFiringPosition(), hittedWave.getTargetPosition(), bulletPosition);
+		double mae = firingOffset > 0 ? hittedWave.getMaxMAE() : hittedWave.getMinMAE();
+		double gf = firingOffset > 0 ? firingOffset/mae : - firingOffset/mae;
+		
+		waves.hit(gf);
+		waves.getWaves().remove(hittedWave);
+		return;
+		
+	};
+	
+	@Override
 	public void onHitByBullet(HitByBulletEvent event) {
 		GBulletFiredEvent wave = waves.getNearestWave(); 		
 		Point2D myPos = new Point2D.Double(getX(), getY());
@@ -85,6 +111,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		
 		
 	}
+	
 	
 	private void setWaveMAE(GBulletFiredEvent wave) {
 		
@@ -109,9 +136,17 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 					angle);
 			
 			tickProjection tick = projection.projectNextTick();
+			double tempMae = orbitDirection == -1 ?Double.MAX_VALUE : Double.MIN_VALUE;
 			
 			while(tick.getPosition().distance(wave.getFiringPosition()) > tick.getTick() * wave.getVelocity()) {
 				tick = projection.projectNextTick();
+				
+				if (orbitDirection == -1) {
+					tempMae = Math.min(tempMae, firingOffset(wave.getFiringPosition(), wave.getTargetPosition(), tick.getPosition()));
+				} else {
+					tempMae = Math.max(tempMae, firingOffset(wave.getFiringPosition(), wave.getTargetPosition(), tick.getPosition()));
+				}
+				
 				
 				if (stickCollide(tick.getPosition(), _ahead == 1 ? tick.getHeading() : tick.getHeading()+180)) {
 					Point2D center1 = new Point2D.Double(tick.getPosition().getX() + Math.sin(Math.toRadians(tick.getHeading()-90))*MINIMUM_RADIUS,
@@ -138,7 +173,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 				}
 			}
 			
-			mae[orbitDirection == -1 ? 0 : 1] = firingOffset(wave.getFiringPosition(), wave.getTargetPosition(), tick.getPosition());
+			mae[orbitDirection == -1 ? 0 : 1] = tempMae;
 		}
 		wave.setMinMAE(Math.min(mae[0], mae[1]));
 		wave.setMaxMAE(Math.max(mae[0], mae[1]));
@@ -237,14 +272,14 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		}
 	}
 	
-	private int surfWave(GBulletFiredEvent nearestWave, double bearingOffset, int direction) {
+	private double surfWave(GBulletFiredEvent nearestWave, double bearingOffset, int direction) {
 		Point2D myPosition = new Point2D.Double(getX(), getY());
 		Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave.getFiringRobot().getPosition() : radar.getLockedEnemy().getPosition();
 		
 		Projection projection = new Projection(myPosition, 
 				getHeading(), 
 				getVelocity(), 
-				ahead, 
+				direction, 
 				bearingOffset);
 		
 		tickProjection tick = projection.projectNextTick();
@@ -288,6 +323,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		
 		out.println("FiringOff: "+firingOffset);
 		double _mae = firingOffset > 0 ? nearestWave.getMaxMAE() : nearestWave.getMinMAE();
+		double gf = firingOffset > 0 ? firingOffset/_mae : - firingOffset/_mae;
 		out.println("MAE: " + _mae);
 		out.println("GF: " + (firingOffset > 0 ? firingOffset/_mae : - firingOffset/_mae));
 		out.println();
@@ -301,7 +337,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		Line2D line = new Line2D.Double(nearestWave.getFiringPosition().getX(), nearestWave.getFiringPosition().getY(), tick.getPosition().getX(), tick.getPosition().getY());
 		toDraw.add(line);
 		
-		return 0;
+		return waves.getDanger(gf);
 	}
 
 	private double firingOffset(Point2D firingPosition, Point2D targetPosition, Point2D hitPosition) {
