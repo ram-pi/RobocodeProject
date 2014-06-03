@@ -99,8 +99,8 @@ public class Enemy implements Comparable{
 		this.lastUpdated = robot.getTime();
 	}
 	
-	public Point getPosition(){
-		return new Point((int)x,(int)y);
+	public Point2D getPosition(){
+		return new Point2D.Double(x, y);
 	} 
 	
 	public Point2D.Double getPosition2() {

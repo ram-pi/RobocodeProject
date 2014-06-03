@@ -11,6 +11,8 @@ public class Bullet {
 	private boolean enemyFired;
 	private Point2D targetPosition;
 	
+	public Bullet() {}
+	
 	public Bullet(Point2D from, double bearing, double power, long time, Point2D targetPosition) {
 		this.from = from;
 		this.actualPosition = from;

@@ -1,4 +1,4 @@
-package org.pattern.movement;
+package org.pattern.utils;
 
 import java.awt.geom.Point2D;
 import java.util.Date;
@@ -6,6 +6,9 @@ import java.util.Hashtable;
 import java.util.Random;
 
 import org.robot.Enemy;
+import org.robot.TheTester;
+
+import com.sun.j3d.internal.Distance;
 
 import robocode.AdvancedRobot;
 
@@ -37,16 +40,46 @@ public class PositionFinder {
 		return ret;
 	}
 	
+	public Double generateRandomAngle() {
+		Random rand = new Random(Double.doubleToLongBits(Math.random()));
+		Double ret = 2*Math.PI*rand.nextDouble();
+		return ret;
+	}
+	
 	public Double evaluateRisk(Point2D.Double p) {
+		// Risk point
 		Double eval = 0.0;
 		for (String key : enemies.keySet()) {
 			Enemy e = enemies.get(key);
 			Double distance = p.distance(e.getPosition());
-			eval += 1 / Math.pow(distance, 2);
+			eval += e.getEnergy() / Math.pow(distance, 2);
 		}
+		Double distanceFromX = findDistanceFromX(p);
+		Double distanceFromY = findDistanceFromY(p);
+		eval+= distanceFromX/4000 + distanceFromY/4000;
 		return eval;
 	}
 	
+	private Double findDistanceFromY(java.awt.geom.Point2D.Double p) {
+		Double ret;
+		if (p.getX() > robot.getBattleFieldWidth()/2) {
+			ret = robot.getBattleFieldWidth() - p.getX();
+		} else {
+			ret = p.getX();
+		}
+		return ret;
+	}
+
+	private Double findDistanceFromX(java.awt.geom.Point2D.Double p) {
+		Double ret;
+		if (p.getY() > robot.getBattleFieldHeight()/2) {
+			ret = robot.getBattleFieldHeight() - p.getY();
+		} else {
+			ret = p.getY();
+		}
+		return ret;
+	}
+
 	public Point2D.Double findBestPoint(int attempt) {
 		int i = 0;
 		Point2D.Double ret = new Point2D.Double();
@@ -72,7 +105,25 @@ public class PositionFinder {
 			i++;
 			Point2D.Double tmp = this.generateRandomPoint();
 			Double tmpEval = this.evaluateRisk(tmp);
-			if (tmpEval < minimumRisk && myPos.distance(tmp) >= distanceRequired) {
+			if (tmpEval < minimumRisk && myPos.distance(tmp) <= distanceRequired) {
+				minimumRisk = tmpEval;
+				ret = tmp;
+			}
+		}
+		return ret;
+	}
+	
+	public Point2D.Double findBestPointInRangeWithRandomOffset(int attempt) {
+		Enemy e = findNearest();
+		Point2D.Double ret = new Point2D.Double();
+		Double minimumRisk = Double.MAX_VALUE;
+		Point2D.Double myPos = new Point2D.Double(robot.getX(), robot.getY());
+		int i = 0;
+		while (i < attempt) {
+			i++;
+			Point2D.Double tmp = Utils.calcPoint(myPos, e.getDistance()*0.6, generateRandomAngle());
+			Double tmpEval = evaluateRisk(tmp);
+			if (tmpEval < minimumRisk && inBattlefield(tmp)) {
 				minimumRisk = tmpEval;
 				ret = tmp;
 			}
@@ -81,6 +132,29 @@ public class PositionFinder {
 	}
 	
 	
+
+	private boolean inBattlefield(java.awt.geom.Point2D.Double tmp) {
+		if (tmp.getX() < 30 || tmp.getX() > robot.getBattleFieldWidth()-30)
+			return false;
+		if (tmp.getY() < 30 || tmp.getY() > robot.getBattleFieldHeight()-30)
+			return false;
+		return true;
+	}
+
+	private Enemy findNearest() {
+		Enemy ret = new Enemy();
+		Point2D.Double myPos = new Point2D.Double(robot.getX(), robot.getY());
+		Double minimum = Double.MAX_VALUE;
+		for (String key : enemies.keySet()) {
+			Enemy e = enemies.get(key);
+			Double tmpDist = myPos.distance(e.getPosition());
+			if (tmpDist < minimum) {
+				ret = e;
+				minimum = tmpDist; 
+			}
+		}
+		return ret;
+	}
 
 	public Hashtable<String, Enemy> getEnemies() {
 		return enemies;
@@ -109,7 +183,7 @@ public class PositionFinder {
 		int i = 0;
 		while (i < 10) {
 			i++;
-			System.out.println(p.generateRandomPoint());
+			System.out.println(p.generateRandomAngle());
 		}
 	}
 	

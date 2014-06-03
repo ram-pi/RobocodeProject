@@ -6,12 +6,18 @@ import java.awt.Point;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
-import org.pattern.movement.PositionFinder;
+import org.pattern.utils.PositionFinder;
 import org.pattern.movement.Projection;
 import org.pattern.movement.WallSmoothing;
 import org.pattern.movement.Projection.tickProjection;
+import java.util.Hashtable;
+import java.util.List;
+
+import org.pattern.utils.PositionFinder;
+import org.pattern.utils.Wave;
 
 import robocode.AdvancedRobot;
+import robocode.HitByBulletEvent;
 import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
@@ -19,6 +25,7 @@ import robocode.util.Utils;
 public class TheTester extends AdvancedRobot {
 
 	private java.util.Hashtable<String, Enemy> enemies;
+	private Hashtable<String, Integer> hitEnemyTable;
 	private Enemy target;
 	private Point2D.Double lastPosition;
 	private Point2D.Double nextPosition;
@@ -27,16 +34,16 @@ public class TheTester extends AdvancedRobot {
 	private double energy;
 	private int ahead;
 	private WallSmoothing wallSmoothing;
+	private List<Wave> enemyWaves;
 
 	@Override
 	public void run() {
-		setColors(Color.white, Color.black, Color.black);
+		setColors(Color.black, Color.black, Color.black);
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
 
 		enemies = new java.util.Hashtable<String, Enemy>();
-
-		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+		hitEnemyTable = new Hashtable<String, Integer>();
 
 		lastPosition = nextPosition = actualPosition = new Point2D.Double(getX(), getY());
 
@@ -46,24 +53,26 @@ public class TheTester extends AdvancedRobot {
 		
 		wallSmoothing=new WallSmoothing(this);
 
-		while (true) {
+		do {
+
+			setTurnRadarRight(360);
+			doScan();
 			lastPosition = actualPosition;
 			actualPosition = new Point2D.Double(getX(), getY());
-			energy = getEnergy();
-
-			if (!target.isDead() && getTime() > 9 && energy > 2) {
-				doSomething();
-			}
-
 			execute();
-		}
+		} while(true);
 
 	}
 
-	private void doSomething() {
-		energy = getEnergy();
-		double distanceToTarget = actualPosition.distance(target.getPosition());
-		Boolean forceSearching = false;
+	private void doScan() {
+		if (getRadarTurnRemaining() != 0)
+			setTurnRadarRight(45);
+		else
+			setTurnRadarRight(getRadarTurnRemaining());
+	}
+
+
+	private void doMovementAndGun() {
 
 		/* Perform head on target for gun movement */
 		double turnGunAmt = (getHeadingRadians() + target.getBearingRadians() - getGunHeadingRadians());
@@ -78,22 +87,23 @@ public class TheTester extends AdvancedRobot {
 		/* Movement Settings, find the next position */
 		double distanceToNewPosition = actualPosition.distance(nextPosition);
 		if (wallSmoothing.doSmoothing(ahead, t)) {
-			if (distanceToNewPosition < 140 || forceSearching) {
+			if (distanceToNewPosition < 140 ) {
 				PositionFinder p = new PositionFinder(enemies, this);
 				// Point2D.Double testPoint = p.findBestPoint(200);
 				Point2D.Double testPoint = p.findBestPointInRange(200, 100.0);
 				nextPosition = testPoint;
 				lastPosition = actualPosition;
-				forceSearching = false;
 			}
 		}
-		else if (distanceToNewPosition < 15 || forceSearching) {
+		else if (distanceToNewPosition < 15) {
 			PositionFinder p = new PositionFinder(enemies, this);
+			int attempt = 200;
 			//Point2D.Double testPoint = p.findBestPoint(200);
-			Point2D.Double testPoint = p.findBestPointInRange(200, 100.0);
+			//double range = distanceToTarget*0.5;
+			//Point2D.Double testPoint = p.findBestPointInRange(attempt, range);
+			Point2D.Double testPoint =  p.findBestPointInRangeWithRandomOffset(attempt);
 			nextPosition = testPoint;
 			lastPosition = actualPosition;
-			forceSearching = false;
 		}
 
 		/* Movement to nextPosition */
@@ -113,35 +123,20 @@ public class TheTester extends AdvancedRobot {
 
 	}
 
-	public double evaluatePosition(Point2D.Double p) {
-		double eval = 0.0;
-
-		for (String key : enemies.keySet()) {
-			Enemy tmp = enemies.get(key);
-			if (!tmp.isDead()) {
-				double dangerousEnemy = Math.min(tmp.getEnergy()/getEnergy(), 2);
-				double distance = p.distanceSq(tmp.getPosition());
-				eval += dangerousEnemy/distance;
-			}
-		}
-		return eval;
-	}
-
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e) {
 		target = new Enemy(e, this);
 
-		if (enemies.get(target.getName()) == null) {
-			enemies.put(target.getName(), target);
-		}
+		Double radarTurn = getHeading() - getRadarHeading() + target.getBearing();
+		setTurnRadarRight(Utils.normalRelativeAngleDegrees(radarTurn));
 
-		//Point2D enemyPos = calcPoint(actualPosition, e.getDistance(), getHeadingRadians() + e.getBearingRadians());
-
-		if (getOthers() == 0)
-			setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
-
+		enemies.put(target.getName(), target);
+		
+		doMovementAndGun();
+		
 		if (getGunHeat() == 0) {
-			fire(3.0);
+			double firePower = Math.min(500 / target.getDistance(), 3);
+			fire(firePower);
 		}
 
 	}
@@ -149,6 +144,34 @@ public class TheTester extends AdvancedRobot {
 	@Override
 	public void onRobotDeath(RobotDeathEvent event) {
 		enemies.remove(event.getName());
+	}
+
+	@Override
+	public void onHitByBullet(HitByBulletEvent event) {
+		System.out.println(event.getName() + "Hit me");
+		if(hitEnemyTable.contains(event.getName())) {
+			int times = hitEnemyTable.get(event.getName());
+			times++;
+			hitEnemyTable.put(event.getName(), times);
+		} else 
+			hitEnemyTable.put(event.getName(), 1);
+
+		int max = -1;
+		Enemy toTarget = new Enemy();
+		for (String key : hitEnemyTable.keySet()) {
+			int tmp = hitEnemyTable.get(key);
+			if (tmp > max && enemies.contains(key)) {
+				max = tmp;
+				toTarget = enemies.get(key);
+			}
+		}
+
+		// Target the robot that shot to us most times
+		if (target != null) {
+			double turnGunAmt = (getHeadingRadians() + toTarget.getBearingRadians() - getGunHeadingRadians());
+			setTurnGunRightRadians(turnGunAmt);
+			target = toTarget;
+		}
 	}
 
 	private static Point2D.Double calcPoint(Point2D.Double p, double dist, double ang) {

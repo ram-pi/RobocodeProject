@@ -99,6 +99,14 @@ public class Utils {
 		return 0;
 	}
 	
+	public static Point2D.Double calcPoint(Point2D.Double p, double dist, double ang) {
+		return new Point2D.Double(p.x + dist*Math.sin(ang), p.y + dist*Math.cos(ang));
+	}
+
+	public static double calcAngle(Point2D p2,Point2D p1){
+		return Math.atan2(p2.getX() - p1.getX(), p2.getY() - p1.getY());
+	}
+	
 //	public static Quadrant getQuadrant(Point2D position, Rectangle2D battleField) {
 //		
 //		if (position.getX() < battleField.getWidth()/2) {
