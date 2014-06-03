@@ -4,8 +4,12 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 import org.pattern.movement.PositionFinder;
+import org.pattern.movement.Projection;
+import org.pattern.movement.WallSmoothing;
+import org.pattern.movement.Projection.tickProjection;
 
 import robocode.AdvancedRobot;
 import robocode.RobotDeathEvent;
@@ -21,6 +25,8 @@ public class TheTester extends AdvancedRobot {
 	private Point2D.Double actualPosition;
 	private double oldDistance;
 	private double energy;
+	private int ahead;
+	private WallSmoothing wallSmoothing;
 
 	@Override
 	public void run() {
@@ -35,6 +41,10 @@ public class TheTester extends AdvancedRobot {
 		lastPosition = nextPosition = actualPosition = new Point2D.Double(getX(), getY());
 
 		target = new Enemy();
+		
+		ahead=1;
+		
+		wallSmoothing=new WallSmoothing(this);
 
 		while (true) {
 			lastPosition = actualPosition;
@@ -61,9 +71,23 @@ public class TheTester extends AdvancedRobot {
 			setTurnGunRightRadians(turnGunAmt);
 		}
 
+		Projection proj = new Projection(new Point2D.Double(getX(), getY()),
+				getHeading(), getVelocity(), ahead, getTurnRemaining());
+		tickProjection t = proj.projectNextTick();
+		
 		/* Movement Settings, find the next position */
 		double distanceToNewPosition = actualPosition.distance(nextPosition);
-		if (distanceToNewPosition < 15 || forceSearching) {
+		if (wallSmoothing.doSmoothing(ahead, t)) {
+			if (distanceToNewPosition < 140 || forceSearching) {
+				PositionFinder p = new PositionFinder(enemies, this);
+				// Point2D.Double testPoint = p.findBestPoint(200);
+				Point2D.Double testPoint = p.findBestPointInRange(200, 100.0);
+				nextPosition = testPoint;
+				lastPosition = actualPosition;
+				forceSearching = false;
+			}
+		}
+		else if (distanceToNewPosition < 15 || forceSearching) {
 			PositionFinder p = new PositionFinder(enemies, this);
 			//Point2D.Double testPoint = p.findBestPoint(200);
 			Point2D.Double testPoint = p.findBestPointInRange(200, 100.0);
@@ -81,6 +105,7 @@ public class TheTester extends AdvancedRobot {
 				angle += Math.PI;
 				direction = -1;
 			}
+			ahead = (int) direction;
 			setAhead(distanceToNewPosition*direction);
 			angle = Utils.normalRelativeAngle(angle);
 			setTurnRightRadians(angle);
@@ -136,7 +161,24 @@ public class TheTester extends AdvancedRobot {
 
 	@Override
 	public void onPaint(Graphics2D g) {
+		
+		g.setColor(Color.BLUE);
 		//g.drawLine((int)target.getX(), (int)target.getY(), (int)getX(), (int)getY());
 		g.fillRect((int) nextPosition.getX(),(int) nextPosition.getY(), 10, 10);
+		
+		Rectangle2D safeBF = new Rectangle2D.Double(18, 18, getBattleFieldWidth()-36, getBattleFieldHeight()-36);
+		g.draw(safeBF);
+		
+		g.fillRect((int)wallSmoothing.getCenter1().getX()-5, (int)wallSmoothing.getCenter1().getY()-5, 10, 10);
+		g.fillRect((int)wallSmoothing.getCenter2().getX()-5, (int)wallSmoothing.getCenter2().getY()-5, 10, 10);
+
+		double heading=ahead == 1 ? getHeading() : getHeading()+180;
+		double endX = getX()+Math.sin(Math.toRadians(heading))*WallSmoothing.STICK_LENGTH;
+		double endY = getY()+Math.cos(Math.toRadians(heading))*WallSmoothing.STICK_LENGTH;
+		g.drawLine((int) getX(), (int) getY(), (int)endX, (int)endY);
+
+		g.drawArc((int)(wallSmoothing.getCenter1().getX()-WallSmoothing.MINIMUM_RADIUS), (int)(wallSmoothing.getCenter1().getY()-WallSmoothing.MINIMUM_RADIUS), WallSmoothing.MINIMUM_RADIUS*2, WallSmoothing.MINIMUM_RADIUS*2, 0, 360);
+		g.drawArc((int)(wallSmoothing.getCenter2().getX()-WallSmoothing.MINIMUM_RADIUS), (int)(wallSmoothing.getCenter2().getY()-WallSmoothing.MINIMUM_RADIUS), WallSmoothing.MINIMUM_RADIUS*2, WallSmoothing.MINIMUM_RADIUS*2, 0, 360);
+	
 	}
 }
