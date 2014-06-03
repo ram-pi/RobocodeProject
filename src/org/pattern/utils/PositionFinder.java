@@ -7,9 +7,6 @@ import java.util.Random;
 
 import org.robot.Enemy;
 import org.robot.TheTester;
-
-import com.sun.j3d.internal.Distance;
-
 import robocode.AdvancedRobot;
 
 public class PositionFinder {

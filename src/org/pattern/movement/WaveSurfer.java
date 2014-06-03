@@ -83,7 +83,7 @@ public class WaveSurfer {
 		bin += NUM_BINS/2;
 		
 		for(int i = 0; i < NUM_BINS; i++) {
-			storage[i] /= 3.;
+//			storage[i] /= 3.;
 			if (i == bin) {
 				storage[i] = 1;
 				continue;

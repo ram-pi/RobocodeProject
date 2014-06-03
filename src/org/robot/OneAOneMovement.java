@@ -13,6 +13,7 @@ import java.util.Observer;
 import java.util.Random;
 
 import org.pattern.movement.MAE;
+import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.WaveSurfer;
 import org.pattern.movement.Projection.tickProjection;
@@ -31,172 +32,155 @@ import robocode.HitRobotEvent;
 import robocode.ScannedRobotEvent;
 import sun.font.EAttribute;
 
-public class OneAOneMovement extends AdvancedRobot implements Observer{
+public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 	int ahead = 1;
 	double randomAngle;
-	
-	List<Shape> toDraw = new LinkedList<>();
 
+	List<Shape> toDraw = new LinkedList<>();
 
 	final int STICK_LENGTH = 140;
 	final int MINIMUM_RADIUS = 114;
-	
-	
+
 	long lastBulletFiredTime = Long.MAX_VALUE;
 	boolean bulletJustFired = false;
 	boolean followRandom = false;
 	boolean fire = false;
 	Radar radar;
-	
+
 	WaveSurfer waves;
-	
+
 	double _targetingStorage[];
 	public int NUM_BINS = 43;
 	List<GBulletFiredEvent> firedBullets;
-	
-	
+
 	double maxDistance;
 
 	public OneAOneMovement() {
 		radar = new Radar(this);
 		radar.addObserver(this);
 		waves = new WaveSurfer(this);
-		
+
 		_targetingStorage = new double[NUM_BINS];
 		firedBullets = new LinkedList<>();
 	}
-	
+
 	@Override
 	public void update(Observable arg0, Object arg1) {
 		if (arg1 instanceof GBulletFiredEvent) {
 			lastBulletFiredTime = getTime();
 			bulletJustFired = true;
-			GBulletFiredEvent wave = (GBulletFiredEvent)arg1;
+			GBulletFiredEvent wave = (GBulletFiredEvent) arg1;
 			setWaveMAE(wave, getHeading(), getVelocity());
 			waves.addWave(wave);
-			
+
 		}
 	}
-	
+
 	@Override
 	public void onBulletHitBullet(BulletHitBulletEvent event) {
-		Point2D bulletPosition = new Point2D.Double(event.getBullet().getX(), event.getBullet().getY());
-		
+		Point2D bulletPosition = new Point2D.Double(event.getBullet().getX(),
+				event.getBullet().getY());
+
 		GBulletFiredEvent hittedWave = null;
 		for (GBulletFiredEvent wave : waves.getWaves()) {
-			if (Math.abs(bulletPosition.distance(wave.getFiringPosition()) - ((getTime() - wave.getFiringTime()) * event.getBullet().getVelocity())) < 20) {
+			if (Math.abs(bulletPosition.distance(wave.getFiringPosition())
+					- ((getTime() - wave.getFiringTime()) * event.getBullet()
+							.getVelocity())) < 20) {
 				hittedWave = wave;
 				break;
 			}
 		}
-		
+
 		if (hittedWave == null)
 			return;
-		
-		double firingOffset = firingOffset(hittedWave.getFiringPosition(), hittedWave.getTargetPosition(), bulletPosition);
-		double mae = firingOffset > 0 ? hittedWave.getMaxMAE() : hittedWave.getMinMAE();
-		double gf = firingOffset > 0 ? firingOffset/mae : - firingOffset/mae;
-		
+
+		double firingOffset = firingOffset(hittedWave.getFiringPosition(),
+				hittedWave.getTargetPosition(), bulletPosition);
+		double mae = firingOffset > 0 ? hittedWave.getMaxMAE() : hittedWave
+				.getMinMAE();
+		double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset / mae;
+
 		waves.hit(gf);
 		waves.getWaves().remove(hittedWave);
 		return;
-		
+
 	};
-	
+
 	@Override
 	public void onHitByBullet(HitByBulletEvent event) {
-		GBulletFiredEvent wave = waves.getNearestWave(); 		
+		GBulletFiredEvent wave = waves.getNearestWave();
 		Point2D myPos = new Point2D.Double(getX(), getY());
-		
-		//TODO we lost a wave
-		if (Math.abs(myPos.distance(wave.getFiringPosition()) - (getTime() - wave.getFiringTime()) * wave.getVelocity()) > 50)
+
+		// TODO we lost a wave
+		if (Math.abs(myPos.distance(wave.getFiringPosition())
+				- (getTime() - wave.getFiringTime()) * wave.getVelocity()) > 50)
 			return;
-		
-		double firingOffset = firingOffset(wave.getFiringPosition(), wave.getTargetPosition(), myPos);
-		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE() : - firingOffset / wave.getMinMAE();
-		
+
+		double firingOffset = firingOffset(wave.getFiringPosition(),
+				wave.getTargetPosition(), myPos);
+		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
+				: -firingOffset / wave.getMinMAE();
+
 		waves.hit(gf);
-		
-		
+
 	}
-	
-	private double getMAE(Point2D firingPosition, Point2D targetPosition, double targetHeading, double targetVelocity, double waveVelocity, int cw) {
-		int _ahead;
-		double angle = org.pattern.utils.Utils.absBearingPerpendicular(targetPosition, firingPosition, cw);
-		
-		_ahead = 1;				
-		if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - targetHeading)) > 90) {
-			_ahead = -1;
-			angle += 180;
+
+	private double getMAE(Point2D firingPosition, Point2D targetPosition,
+			double targetHeading, double targetVelocity, double waveVelocity,
+			int cw) {
+
+		double angle = org.pattern.utils.Utils.absBearingPerpendicular(
+				targetPosition, firingPosition, cw);
+		Move m = new Move(this);
+		m.move(angle, targetHeading);
+		// TODO use values 2 ticks before detecting the wave
+		Projection projection = new Projection(targetPosition, targetHeading,
+				targetVelocity, m.ahead, m.turnRight);
+
+		tickProjection tick = projection.projectNextTick();
+		double tempMae = cw == -1 ? Double.MAX_VALUE : Double.MIN_VALUE;
+
+		while (tick.getPosition().distance(firingPosition) > tick.getTick()
+				* waveVelocity) {
+			tick = projection.projectNextTick();
+
+			if (cw == -1) {
+				tempMae = Math.min(
+						tempMae,
+						firingOffset(firingPosition, targetPosition,
+								tick.getPosition()));
+			} else {
+				tempMae = Math.max(
+						tempMae,
+						firingOffset(firingPosition, targetPosition,
+								tick.getPosition()));
+			}
+
+			if (m.smooth(tick.getPosition(), tick.getHeading(), projection.getWantedHeading(), m.ahead)) {
+					projection.setWantedDirection(m.ahead);
+					projection.setWantedHeading(tick.getHeading() + m.turnRight);
+			}
 		}
 
-		angle = robocode.util.Utils.normalRelativeAngleDegrees(angle - targetHeading);
-		//TODO use values 2 ticks before detecting the wave
-		Projection projection = new Projection(targetPosition, 
-				targetHeading,
-				targetVelocity,
-				_ahead,
-				angle);
-		
-		tickProjection tick = projection.projectNextTick();
-		double tempMae = cw == -1 ?Double.MAX_VALUE : Double.MIN_VALUE;
-		
-		while(tick.getPosition().distance(firingPosition) > tick.getTick() * waveVelocity) {
-			tick = projection.projectNextTick();
-			
-			if (cw == -1) {
-				tempMae = Math.min(tempMae, firingOffset(firingPosition, targetPosition, tick.getPosition()));
-			} else {
-				tempMae = Math.max(tempMae, firingOffset(firingPosition, targetPosition, tick.getPosition()));
-			}
-			
-			
-			if (stickCollide(tick.getPosition(), _ahead == 1 ? tick.getHeading() : tick.getHeading()+180)) {
-				Point2D center1 = new Point2D.Double(tick.getPosition().getX() + Math.sin(Math.toRadians(tick.getHeading()-90))*MINIMUM_RADIUS,
-						tick.getPosition().getY() + Math.cos(Math.toRadians(tick.getHeading()-90))*MINIMUM_RADIUS);
-				Point2D center2 = new Point2D.Double(tick.getPosition().getX() + Math.sin(Math.toRadians(tick.getHeading()+90))*MINIMUM_RADIUS,
-						tick.getPosition().getY() + Math.cos(Math.toRadians(tick.getHeading()+90))*MINIMUM_RADIUS);
-				Boolean smoothC1 = canSmooth(center1);
-				Boolean smoothC2 = canSmooth(center2);
-				if (!smoothC1 && !smoothC2) {
-					projection.setWantedDirection(_ahead * -1);
-					
-				} else if (smoothC1 && _ahead == 1 || smoothC2 && _ahead == -1) {
-					if (projection.getWantedHeading() - tick.getHeading() > -4) {
-						projection.setWantedDirection(_ahead);
-						projection.setWantedHeading(tick.getHeading() -4);
-					}
-	
-				} else if (smoothC2 && _ahead == 1 || smoothC1 && _ahead == -1) {
-					if (projection.getWantedHeading() - tick.getHeading() < 4) {
-						projection.setWantedDirection(_ahead);
-						projection.setWantedHeading(tick.getHeading() + 4);
-					}
-				}
-			}
-		}
-		
 		return tempMae;
 	}
-	
-	private void setWaveMAE(GBulletFiredEvent wave, double heading, double velocity) {
-		
+
+	private void setWaveMAE(GBulletFiredEvent wave, double heading,
+			double velocity) {
+
 		double mae[] = new double[2];
-		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection+=2) {
-			
-			mae[orbitDirection == -1 ? 0 : 1] = getMAE(wave.getFiringPosition(), 
-					wave.getTargetPosition(), 
-					heading, 
-					velocity, 
-					wave.getVelocity(), 
-					orbitDirection);
+		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) {
+
+			mae[orbitDirection == -1 ? 0 : 1] = getMAE(
+					wave.getFiringPosition(), wave.getTargetPosition(),
+					heading, velocity, wave.getVelocity(), orbitDirection);
 		}
 		wave.setMinMAE(Math.min(mae[0], mae[1]));
 		wave.setMaxMAE(Math.max(mae[0], mae[1]));
 		return;
 	}
-	
+
 	@Override
 	public void run() {
 		setAdjustRadarForRobotTurn(true);
@@ -204,301 +188,231 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		setAdjustGunForRobotTurn(true);
 		int cw = 1;
 		Random r = new Random();
-		maxDistance = Math.sqrt(getBattleFieldWidth()*getBattleFieldWidth()+getBattleFieldHeight()*getBattleFieldHeight());
-		
+		maxDistance = Math.sqrt(getBattleFieldWidth() * getBattleFieldWidth()
+				+ getBattleFieldHeight() * getBattleFieldHeight());
 
-		while(true) {
+		while (true) {
 			radar.doScan();
 			updateFiredBullets();
-			
+
 			double _ahead = 0;
 			double _turnRight = 0;
-			
-			waves.removePassedWaves();
-			
-			GBulletFiredEvent nearestWave = waves.getNearestWave();
 
-			
-			if (nearestWave != null) {
-				Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave.getFiringRobot().getPosition() : radar.getLockedEnemy().getPosition();
+			waves.removePassedWaves();
+			Move m = new Move(this);
+			GBulletFiredEvent nearestWave = waves.getNearestWave();
+			double angle;
+			if (nearestWave == null && radar.getLockedEnemy() != null) {
+				Enemy e = radar.getLockedEnemy();
+				angle = org.pattern.utils.Utils
+						.absBearingPerpendicular(new Point2D.Double(getX(),
+								getY()), e.getPosition(), cw);
+				m.move(angle, getHeading());
+			}
+			else if (nearestWave != null) {
+				Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave
+						.getFiringRobot().getPosition() : radar
+						.getLockedEnemy().getPosition();
 				double minRisk = Double.MAX_VALUE;
-				for (int orbitDirection = -1; orbitDirection < 2; orbitDirection+=2) {
-					double angle = 0;
+				for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) {
+					angle = org.pattern.utils.Utils.absBearingPerpendicular(
+							new Point2D.Double(getX(), getY()), enemyPosition,
+							orbitDirection);
 					
-					angle = org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(getX(), getY()), enemyPosition, orbitDirection);
+					m.move(angle, getHeading());
 					
-					ahead = 1;				
-					if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - getHeading())) > 90) {
-						ahead = -1;
-						angle += 180;
-					}
-	
-					_turnRight = robocode.util.Utils.normalRelativeAngleDegrees(angle - getHeading());
-					
-					double risk = surfWave(nearestWave, _turnRight, ahead);
+					double risk = surfWave(nearestWave, m.turnRight, m.ahead);
 					if (risk < minRisk) {
 						minRisk = risk;
 						cw = orbitDirection;
 					}
 				}
 			}
-			
-			if (getTime() - lastBulletFiredTime > 7) {
-				followRandom = false;
-			}
-			
-			
-			if (!followRandom && radar.getLockedEnemy() != null) {
-				Enemy e = radar.getLockedEnemy();
-				double angle = org.pattern.utils.Utils.absBearingPerpendicular(new Point2D.Double(getX(), getY()), e.getPosition(), cw);
-				
-				ahead=1;
-				if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - getHeading())) > 90) {
-					ahead = -1;
-					angle += 180;
-				}
 
-				_turnRight = robocode.util.Utils.normalRelativeAngleDegrees(angle - getHeading());
-			}
 			
-			_ahead = ahead*100;
-			Projection proj = new Projection(new Point2D.Double(getX(), getY()), getHeading(), getVelocity(), ahead, getTurnRemaining()+_turnRight);
+
+			Projection proj = new Projection(
+					new Point2D.Double(getX(), getY()), getHeading(),
+					getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
 			tickProjection t = proj.projectNextTick();
-			if (stickCollide(t.getPosition(), ahead == 1 ? getHeading() : getHeading()+180)) {
-				Point2D center1 = new Point2D.Double(getX() + Math.sin(Math.toRadians(getHeading()-90))*MINIMUM_RADIUS,
-						getY() + Math.cos(Math.toRadians(getHeading()-90))*MINIMUM_RADIUS);
-				Point2D center2 = new Point2D.Double(getX() + Math.sin(Math.toRadians(getHeading()+90))*MINIMUM_RADIUS,
-						getY() + Math.cos(Math.toRadians(getHeading()+90))*MINIMUM_RADIUS);
-				Boolean smoothC1 = canSmooth(center1);
-				Boolean smoothC2 = canSmooth(center2);
-				if (!smoothC1 && !smoothC2) {
-					_ahead = ahead * -100;
-					System.out.println("No way out");
-				} else if (smoothC1 && ahead == 1 || smoothC2 && ahead == -1) {
-					if (_turnRight > -4)
-						_turnRight = -4;
-	
-				} else if (smoothC2 && ahead == 1 || smoothC1 && ahead == -1) {
-					if (_turnRight < 4)
-						_turnRight = 4;
-				}
-			}
+			
+			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
+			
+			ahead = m.ahead;
+			_turnRight = m.turnRight;
+			_ahead = ahead * 100;
 			
 			setAhead(_ahead);
 			setTurnRight(_turnRight);
 			execute();
 		}
 	}
-	
+
 	private void updateFiredBullets() {
 		GBulletFiredEvent hittedBullet;
 		Enemy e = radar.getLockedEnemy();
 		List<GBulletFiredEvent> toRemove = new LinkedList<>();
-		
+
 		if (e == null)
 			return;
-		
-		
+
 		for (GBulletFiredEvent bullet : firedBullets) {
-			double distanceFromTarget = bullet.getFiringPosition().distance(e.getPosition());
-			double distanceTravelled = (getTime() - bullet.getFiringTime()) * bullet.getVelocity();
-			
+			double distanceFromTarget = bullet.getFiringPosition().distance(
+					e.getPosition());
+			double distanceTravelled = (getTime() - bullet.getFiringTime())
+					* bullet.getVelocity();
+
 			if (distanceFromTarget - distanceTravelled < -50) {
 				toRemove.add(bullet);
 				continue;
 			}
-			
+
 			if (Math.abs(distanceFromTarget - distanceTravelled) < 30) {
-				double firingOffset = firingOffset(bullet.getFiringPosition(), bullet.getTargetPosition(), e.getPosition());
-				double _mae = firingOffset > 0 ? bullet.getMaxMAE() : bullet.getMinMAE();
-				double gf = firingOffset > 0 ? firingOffset/_mae : - firingOffset/_mae;
-				
+				double firingOffset = firingOffset(bullet.getFiringPosition(),
+						bullet.getTargetPosition(), e.getPosition());
+				double _mae = firingOffset > 0 ? bullet.getMaxMAE() : bullet
+						.getMinMAE();
+				double gf = firingOffset > 0 ? firingOffset / _mae
+						: -firingOffset / _mae;
+
 				updateGFs(gf);
 				toRemove.add(bullet);
-				
-				Rectangle2D _fpos = new Rectangle2D.Double(bullet.getFiringPosition().getX()-6, bullet.getFiringPosition().getY()-6, 12, 12);
-				toDraw.add(_fpos);
 
-				Rectangle2D _tpos = new Rectangle2D.Double(bullet.getTargetPosition().getX()-6, bullet.getTargetPosition().getY()-6, 12, 12);
-				toDraw.add(_tpos);
-				
+				// Rectangle2D _fpos = new
+				// Rectangle2D.Double(bullet.getFiringPosition().getX()-6,
+				// bullet.getFiringPosition().getY()-6, 12, 12);
+				// toDraw.add(_fpos);
+				//
+				// Rectangle2D _tpos = new
+				// Rectangle2D.Double(bullet.getTargetPosition().getX()-6,
+				// bullet.getTargetPosition().getY()-6, 12, 12);
+				// toDraw.add(_tpos);
 
 			}
 		}
-		
-		
+
 		for (GBulletFiredEvent b : toRemove) {
 			firedBullets.remove(b);
 		}
-		
+
 	}
 
 	private void updateGFs(double gf) {
 
-		
-		int bin = (int)(gf * NUM_BINS/2.);
-		bin += NUM_BINS/2;
-		
-		for(int i = 0; i < NUM_BINS; i++) {
-			_targetingStorage[i] /= 3.;
+		int bin = (int) (gf * NUM_BINS / 2.);
+		bin += NUM_BINS / 2;
+
+		for (int i = 0; i < NUM_BINS; i++) {
+			// _targetingStorage[i] /= 3.;
 			if (i == bin) {
 				_targetingStorage[i] += 1;
 				continue;
 			}
-			
-			_targetingStorage[i] += 1./(Math.abs(bin - i)*2);
+
+			_targetingStorage[i] += 1. / (Math.abs(bin - i) * 2);
 		}
 	}
-	
+
 	private double getBestGF() {
 		double max = Double.MIN_VALUE;
 		int bin = 0;
-		
-		
-		//TODO get best "three bin" average 
+
+		// TODO get best "three bin" average
 		for (int i = 0; i < NUM_BINS; i++) {
 			if (_targetingStorage[i] > max) {
 				max = _targetingStorage[i];
 				bin = i;
 			}
 		}
-		
-		if (bin < NUM_BINS/2) {
-			return - (1 - 1./NUM_BINS/2 * bin);
-		} else if(bin > NUM_BINS/2) {
-			return 1./ (NUM_BINS/2) * (bin - NUM_BINS/2);
+
+		if (bin < NUM_BINS / 2) {
+			return -(1 - 1. / NUM_BINS / 2 * bin);
+		} else if (bin > NUM_BINS / 2) {
+			return 1. / (NUM_BINS / 2) * (bin - NUM_BINS / 2);
 		} else
 			return 0;
-		
+
 	}
 
-	private double surfWave(GBulletFiredEvent nearestWave, double bearingOffset, int direction) {
+	private double surfWave(GBulletFiredEvent nearestWave,
+			double bearingOffset, int direction) {
 		Point2D myPosition = new Point2D.Double(getX(), getY());
-		Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave.getFiringRobot().getPosition() : radar.getLockedEnemy().getPosition();
-		
-		Projection projection = new Projection(myPosition, 
-				getHeading(), 
-				getVelocity(), 
-				direction, 
-				bearingOffset);
-		
+		Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave
+				.getFiringRobot().getPosition() : radar.getLockedEnemy()
+				.getPosition();
+
+		Projection projection = new Projection(myPosition, getHeading(),
+				getVelocity(), direction, bearingOffset);
+
 		tickProjection tick = projection.projectNextTick();
-		int timeElapsed = (int)(getTime() - nearestWave.getFiringTime());
+		int timeElapsed = (int) (getTime() - nearestWave.getFiringTime());
+		Move m = new Move(this);
 		
-		while(tick.getPosition().distance(nearestWave.getFiringPosition()) > (timeElapsed + tick.getTick()) * nearestWave.getVelocity()) {
+		while (tick.getPosition().distance(nearestWave.getFiringPosition()) > (timeElapsed + tick
+				.getTick()) * nearestWave.getVelocity()) {
 			tick = projection.projectNextTick();
 			
-			if (stickCollide(tick.getPosition(), direction == 1 ? tick.getHeading() : tick.getHeading()+180)) {
-				Point2D center1 = new Point2D.Double(tick.getPosition().getX() + Math.sin(Math.toRadians(tick.getHeading()-90))*MINIMUM_RADIUS,
-						tick.getPosition().getY() + Math.cos(Math.toRadians(tick.getHeading()-90))*MINIMUM_RADIUS);
-				Point2D center2 = new Point2D.Double(tick.getPosition().getX() + Math.sin(Math.toRadians(tick.getHeading()+90))*MINIMUM_RADIUS,
-						tick.getPosition().getY() + Math.cos(Math.toRadians(tick.getHeading()+90))*MINIMUM_RADIUS);
-				Boolean smoothC1 = canSmooth(center1);
-				Boolean smoothC2 = canSmooth(center2);
-				if (!smoothC1 && !smoothC2) {
-					projection.setWantedDirection(direction * -1);
-					
-				} else if (smoothC1 && direction == 1 || smoothC2 && direction == -1) {
-					if (projection.getWantedHeading() - tick.getHeading() > -4) {
-						projection.setWantedDirection(direction);
-						projection.setWantedHeading(tick.getHeading() -4);
-					}
-	
-				} else if (smoothC2 && direction == 1 || smoothC1 && direction == -1) {
-					if (projection.getWantedHeading() - tick.getHeading() < 4) {
-						projection.setWantedDirection(direction);
-						projection.setWantedHeading(tick.getHeading() + 4);
-					}
-				}
+			if (m.smooth(tick.getPosition(), tick.getHeading(), projection.getWantedHeading(), direction)) {
+				projection.setWantedDirection(m.ahead);
+				projection.setWantedHeading(tick.getHeading() + m.turnRight);
 			}
 		}
-		
-		for (tickProjection t : projection.getProjections()) {
-			Rectangle2D rect = new Rectangle2D.Double(t.getPosition().getX()-2, t.getPosition().getY()-2, 4, 4);
-			toDraw.add(rect);
+
+
+		double firingOffset = firingOffset(nearestWave.getFiringPosition(),
+				nearestWave.getTargetPosition(), tick.getPosition());
+
+		double _mae = firingOffset > 0 ? nearestWave.getMaxMAE() : nearestWave
+				.getMinMAE();
+		double gf = firingOffset > 0 ? firingOffset / _mae : -firingOffset
+				/ _mae;
+
+		boolean drawSurf = false;
+		if (drawSurf) {
+			for (tickProjection t : projection.getProjections()) {
+				Rectangle2D rect = new Rectangle2D.Double(t.getPosition()
+						.getX() - 2, t.getPosition().getY() - 2, 4, 4);
+				toDraw.add(rect);
+			}
 		}
-		
-		double firingOffset = firingOffset(nearestWave.getFiringPosition(), nearestWave.getTargetPosition(), tick.getPosition());
-		
-		
-//		out.println("FiringOff: "+firingOffset);
-		double _mae = firingOffset > 0 ? nearestWave.getMaxMAE() : nearestWave.getMinMAE();
-		double gf = firingOffset > 0 ? firingOffset/_mae : - firingOffset/_mae;
-//		out.println("MAE: " + _mae);
-//		out.println("GF: " + (firingOffset > 0 ? firingOffset/_mae : - firingOffset/_mae));
-//		out.println();
-		
-//		Rectangle2D _fpos = new Rectangle2D.Double(nearestWave.getFiringPosition().getX()-6, nearestWave.getFiringPosition().getY()-6, 12, 12);
-//		toDraw.add(_fpos);
-//
-//		Rectangle2D _tpos = new Rectangle2D.Double(nearestWave.getTargetPosition().getX()-6, nearestWave.getTargetPosition().getY()-6, 12, 12);
-//		toDraw.add(_tpos);
-//		
-//		Line2D line = new Line2D.Double(nearestWave.getFiringPosition().getX(), nearestWave.getFiringPosition().getY(), tick.getPosition().getX(), tick.getPosition().getY());
-//		toDraw.add(line);
-		
+
 		return waves.getDanger(gf);
 	}
 
-	private double firingOffset(Point2D firingPosition, Point2D targetPosition, Point2D hitPosition) {
-		double firingBearing = robocode.util.Utils.normalAbsoluteAngleDegrees(Utils.absBearing(firingPosition, hitPosition));
-		double bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(Utils.absBearing(firingPosition, targetPosition));
-		
-		
+	private double firingOffset(Point2D firingPosition, Point2D targetPosition,
+			Point2D hitPosition) {
+		double firingBearing = robocode.util.Utils
+				.normalAbsoluteAngleDegrees(Utils.absBearing(firingPosition,
+						hitPosition));
+		double bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(Utils
+				.absBearing(firingPosition, targetPosition));
+
 		double ret;
 		if (firingBearing > bearing)
-			ret =  firingBearing - bearing;
+			ret = firingBearing - bearing;
 		else
-			ret = - (bearing - firingBearing);
-		
+			ret = -(bearing - firingBearing);
+
 		return robocode.util.Utils.normalRelativeAngleDegrees(ret);
 	}
 
-	private Boolean canSmooth (Point2D center) {
-		Point2D up, down, left, right;
-		up = new Point2D.Double(center.getX(), center.getY()+MINIMUM_RADIUS);
-		down = new Point2D.Double(center.getX(), center.getY()-MINIMUM_RADIUS);
-		left = new Point2D.Double(center.getX()-MINIMUM_RADIUS, center.getY());
-		right = new Point2D.Double(center.getX()+MINIMUM_RADIUS, center.getY());
-		Rectangle2D safeBF = new Rectangle2D.Double(18, 18, getBattleFieldWidth()-36, getBattleFieldHeight()-36);
-		if (!safeBF.contains(up) || !safeBF.contains(right) || !safeBF.contains(down) || !safeBF.contains(left)) {
-			return false;
-		}
-		return true;
-	}
-
-	private Boolean stickCollide (Point2D p, Double heading) {
-		
-		Rectangle2D safeBF = new Rectangle2D.Double(18, 18, getBattleFieldWidth()-36, getBattleFieldHeight()-36);
-
-		Double endX = p.getX()+Math.sin(Math.toRadians(heading))*STICK_LENGTH;
-		Double endY = p.getY()+Math.cos(Math.toRadians(heading))*STICK_LENGTH;
-		
-
-		if (!safeBF.contains(endX, endY)) {
-			return true;
-		}
-
-
-		return false;
-	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent event) {
 		radar.consumeScannedRobotEvent(event);
-		
+
 		Enemy e = new Enemy(event, this);
-    
+
 		double distance = event.getDistance();
-		
+
 		double firePower = 0;
 		Point2D myPosition = new Point2D.Double(getX(), getY());
-		
+
 		if (getEnergy() < 30)
 			firePower = 1.;
 		else
-			firePower = 3 - (distance / maxDistance) * 3; 
-				
+			firePower = 3 - (distance / maxDistance) * 3;
+
 		double bestGF = getBestGF();
 		double mae = 0;
 		int cw = 0;
@@ -507,120 +421,160 @@ public class OneAOneMovement extends AdvancedRobot implements Observer{
 		} else {
 			cw = -1;
 		}
-			
-		mae = getMAE(myPosition, 
-				e.getPosition(), 
-				e.getHeading(), 
-				e.getVelocity(), 
-				20 - firePower * 3, 
-				cw);
 
-		
-		double angle = cw *bestGF * mae;
+		mae = getMAE(myPosition, e.getPosition(), e.getHeading(),
+				e.getVelocity(), 20 - firePower * 3, cw);
+
+		double angle = cw * bestGF * mae;
 		double absBearing = Utils.absBearing(myPosition, e.getPosition());
 		angle += absBearing;
-		setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(angle - getGunHeading()));
-		
+		setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(angle
+				- getGunHeading()));
+
 		if (getGunHeat() == 0) {
 			GBulletFiredEvent bullet = new GBulletFiredEvent();
 
 			bullet.setEnergy(firePower);
-			bullet.setFiringPosition(myPosition); //TODO take the next tick position?
-			bullet.setFiringTime(getTime()+1);
+			bullet.setFiringPosition(myPosition); // TODO take the next tick
+													// position?
+			bullet.setFiringTime(getTime() + 1);
 			bullet.setTargetPosition(e.getPosition());
 			bullet.setVelocity(20 - firePower * 3);
 			setWaveMAE(bullet, e.getHeading(), e.getVelocity());
-			
+
 			firedBullets.add(bullet);
-			
+
 			setFire(firePower);
 		}
 	}
-	
-	
+
 	private double getAimingBearing(ScannedRobotEvent event, double firePower) {
 		double angle;
 		Enemy enemy = new Enemy(event, this);
-		
+
 		Projection proj = new Projection(enemy.getPosition(),
-					enemy.getHeading(), 
-					enemy.getVelocity(), 
-					(int)Math.signum(enemy.getVelocity()),
-					0);
-		
+				enemy.getHeading(), enemy.getVelocity(),
+				(int) Math.signum(enemy.getVelocity()), 0);
+
 		tickProjection tick = proj.projectNextTick();
-		while(tick.getPosition().distance(getX(), getY()) > tick.getTick() * (20 - 3 * firePower)) {
+		while (tick.getPosition().distance(getX(), getY()) > tick.getTick()
+				* (20 - 3 * firePower)) {
 			tick = proj.projectNextTick();
 		}
-		
-		angle = Utils.absBearing(new Point2D.Double(getX(),getY()), tick.getPosition());
-		
+
+		angle = Utils.absBearing(new Point2D.Double(getX(), getY()),
+				tick.getPosition());
+
 		return angle;
 	}
-	
+
 	@Override
 	public void onHitRobot(HitRobotEvent event) {
 		radar.consumeHitAnotherRobotEvent(event);
 	}
-	
-	
+
 	@Override
 	public void onPaint(Graphics2D g) {
 		super.onPaint(g);
-		Rectangle2D safeBF = new Rectangle2D.Double(18, 18, getBattleFieldWidth()-36, getBattleFieldHeight()-36);
-		g.draw(safeBF);
+		boolean paintWS = true;
 		
-		
-		Point2D center1 = new Point2D.Double(getX() + Math.sin(Math.toRadians(getHeading()-90))*MINIMUM_RADIUS,
-				getY() + Math.cos(Math.toRadians(getHeading()-90))*MINIMUM_RADIUS);
-		Point2D center2 = new Point2D.Double(getX() + Math.sin(Math.toRadians(getHeading()+90))*MINIMUM_RADIUS,
-				getY() + Math.cos(Math.toRadians(getHeading()+90))*MINIMUM_RADIUS);
-		g.fillRect((int)center1.getX()-5, (int)center1.getY()-5, 10, 10);
-		g.fillRect((int)center2.getX()-5, (int)center2.getY()-5, 10, 10);
+		if (paintWS) {		
+			Rectangle2D safeBF = new Rectangle2D.Double(18, 18,
+					getBattleFieldWidth() - 36, getBattleFieldHeight() - 36);
+			g.draw(safeBF);
 
-		
-		double heading = ahead == 1? getHeading() : getHeading() + 180;
-		g.drawLine((int) getX(), (int) getY(), (int)(getX()+Math.sin(Math.toRadians(heading))*STICK_LENGTH), (int)(getY()+Math.cos(Math.toRadians(heading))*STICK_LENGTH));
+			Point2D center1 = new Point2D.Double(getX()
+					+ Math.sin(Math.toRadians(getHeading() - 90))
+					* MINIMUM_RADIUS, getY()
+					+ Math.cos(Math.toRadians(getHeading() - 90))
+					* MINIMUM_RADIUS);
+			Point2D center2 = new Point2D.Double(getX()
+					+ Math.sin(Math.toRadians(getHeading() + 90))
+					* MINIMUM_RADIUS, getY()
+					+ Math.cos(Math.toRadians(getHeading() + 90))
+					* MINIMUM_RADIUS);
+			
+			drawPoint(center1, 10, g);
+			drawPoint(center2, 10, g);
+			
+			double heading = ahead == 1 ? getHeading() : getHeading() + 180;
+			g.drawLine((int) getX(), (int) getY(),
+					(int) (getX() + Math.sin(Math.toRadians(heading))
+							* STICK_LENGTH),
+					(int) (getY() + Math.cos(Math.toRadians(heading))
+							* STICK_LENGTH));
 
-		g.drawArc((int)(center1.getX()-MINIMUM_RADIUS), (int)(center1.getY()-MINIMUM_RADIUS), MINIMUM_RADIUS*2, MINIMUM_RADIUS*2, 0, 360);
-		g.drawArc((int)(center2.getX()-MINIMUM_RADIUS), (int)(center2.getY()-MINIMUM_RADIUS), MINIMUM_RADIUS*2, MINIMUM_RADIUS*2, 0, 360);
-		
-		
-		GBulletFiredEvent wave = firedBullets.get(0);
-		
-		int maeLength = 200;
-		if (wave != null) {
-			double radius = wave.getVelocity() * (getTime() - wave.getFiringTime());
-			g.drawArc((int)(wave.getFiringPosition().getX() - radius), (int)(wave.getFiringPosition().getY() - radius), (int)radius*2, (int)radius*2, 0, 360);
-			g.drawRect((int)wave.getFiringPosition().getX() - 5, (int)wave.getFiringPosition().getY() - 5, 10, 10);
-			
-			
-			double absBearing = Utils.absBearing(wave.getFiringPosition(), wave.getTargetPosition());
-			
-//			//draw MAE
-			Color c = g.getColor();
-			g.setColor(new Color(255,255,0));
-			g.drawLine((int)wave.getFiringPosition().getX(), 
-					(int)wave.getFiringPosition().getY(), 
-					(int)(wave.getTargetPosition().getX()), 
-					(int)(wave.getTargetPosition().getY()));
-			g.setColor(new Color(255,0,0));
-			g.drawLine((int)wave.getFiringPosition().getX(), 
-					(int)wave.getFiringPosition().getY(), 
-					(int)(wave.getFiringPosition().getX() + Math.sin(Math.toRadians(absBearing + wave.getMaxMAE())) * maeLength), 
-					(int)(wave.getFiringPosition().getY() + Math.cos(Math.toRadians(absBearing + wave.getMaxMAE())) * maeLength));
-			
-			g.drawLine((int)wave.getFiringPosition().getX(), 
-					(int)wave.getFiringPosition().getY(), 
-					(int)(wave.getFiringPosition().getX() + Math.sin(Math.toRadians(absBearing + wave.getMinMAE())) * maeLength), 
-					(int)(wave.getFiringPosition().getY() + Math.cos(Math.toRadians(absBearing + wave.getMinMAE())) * maeLength));
-			g.setColor(c);
+			g.drawArc((int) (center1.getX() - MINIMUM_RADIUS),
+					(int) (center1.getY() - MINIMUM_RADIUS),
+					MINIMUM_RADIUS * 2, MINIMUM_RADIUS * 2, 0, 360);
+			g.drawArc((int) (center2.getX() - MINIMUM_RADIUS),
+					(int) (center2.getY() - MINIMUM_RADIUS),
+					MINIMUM_RADIUS * 2, MINIMUM_RADIUS * 2, 0, 360);
+
+		}
+		Color c = g.getColor();
+		g.setColor(Color.RED);
+
+		for (GBulletFiredEvent wave : waves.getWaves()) {
+			drawWaveAndMae(wave, g);
+		}
+
+		g.setColor(Color.GREEN);
+		for (GBulletFiredEvent wave : firedBullets) {
+			drawWaveAndMae(wave, g);
 		}
 		
+		g.setColor(c);
+
 		for (Shape s : toDraw) {
 			g.draw(s);
 		}
+
 		toDraw.clear();
 	}
 	
+	private void drawPoint(Point2D point, int size, Graphics2D g) {
+		g.fillRect((int)(point.getX()-size/2), (int)(point.getY()-size/2), size, size);
+	}
+	private void drawWaveAndMae(GBulletFiredEvent wave, Graphics2D g) {
+		double maeLength = 300;
+		double radius = wave.getVelocity()
+				* (getTime() - wave.getFiringTime());
+		g.drawArc((int) (wave.getFiringPosition().getX() - radius),
+				(int) (wave.getFiringPosition().getY() - radius),
+				(int) radius * 2, (int) radius * 2, 0, 360);
+		g.drawRect((int) wave.getFiringPosition().getX() - 5, (int) wave
+				.getFiringPosition().getY() - 5, 10, 10);
+
+		double absBearing = Utils.absBearing(wave.getFiringPosition(),
+				wave.getTargetPosition());
+
+		drawPoint(wave.getFiringPosition(), 4, g);
+		drawPoint(wave.getTargetPosition(), 4, g);
+		// //draw MAE
+		g.drawLine((int) wave.getFiringPosition().getX(), (int) wave
+				.getFiringPosition().getY(), (int) (wave
+				.getTargetPosition().getX()), (int) (wave
+				.getTargetPosition().getY()));
+
+		g.drawLine(
+				(int) wave.getFiringPosition().getX(),
+				(int) wave.getFiringPosition().getY(),
+				(int) (wave.getFiringPosition().getX() + Math.sin(Math
+						.toRadians(absBearing + wave.getMaxMAE()))
+						* maeLength),
+				(int) (wave.getFiringPosition().getY() + Math.cos(Math
+						.toRadians(absBearing + wave.getMaxMAE()))
+						* maeLength));
+
+		g.drawLine(
+				(int) wave.getFiringPosition().getX(),
+				(int) wave.getFiringPosition().getY(),
+				(int) (wave.getFiringPosition().getX() + Math.sin(Math
+						.toRadians(absBearing + wave.getMinMAE()))
+						* maeLength),
+				(int) (wave.getFiringPosition().getY() + Math.cos(Math
+						.toRadians(absBearing + wave.getMinMAE()))
+						* maeLength));
+	}
 }

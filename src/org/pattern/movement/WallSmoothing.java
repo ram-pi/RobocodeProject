@@ -46,7 +46,7 @@ public class WallSmoothing {
 		center1=new Point2D.Double(0, 0);
 		center2=new Point2D.Double(0, 0);
 	}
-	
+
 	public boolean doSmoothing(int ahead,tickProjection t){
 		
 		double _ahead=ahead*100;
