@@ -99,8 +99,8 @@ public class Utils {
 		return 0;
 	}
 	
-	public static Point2D.Double calcPoint(Point2D.Double p, double dist, double ang) {
-		return new Point2D.Double(p.x + dist*Math.sin(ang), p.y + dist*Math.cos(ang));
+	public static Point2D.Double calcPoint(Point2D p, double dist, double ang) {
+		return new Point2D.Double(p.getX() + dist*Math.sin(ang), p.getY() + dist*Math.cos(ang));
 	}
 
 	public static double calcAngle(Point2D p2,Point2D p1){
