@@ -19,6 +19,7 @@ import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
 import org.pattern.radar.Radar;
 import org.pattern.utils.Utils;
+import org.pattern.utils.VisitCountStorage;
 
 
 
@@ -38,6 +39,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 	Radar radar;
 	WaveSurfer waves;
+	
+	VisitCountStorage riskStorage, gfStorage;
 
 	double _targetingStorage[];
 	public int NUM_BINS = 43;
@@ -50,7 +53,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		radar.addObserver(this);
 		waves = new WaveSurfer(this);
 
-		_targetingStorage = new double[NUM_BINS];
+		riskStorage = new VisitCountStorage();
+		gfStorage = new VisitCountStorage();
+
 		firedBullets = new LinkedList<>();
 	}
 
@@ -88,7 +93,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				.getMinMAE();
 		double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset / mae;
 
-		waves.hit(gf);
+		riskStorage.visit(gf);
 		waves.getWaves().remove(hittedWave);
 		return;
 
@@ -109,7 +114,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
 				: -firingOffset / wave.getMinMAE();
 
-		waves.hit(gf);
+		riskStorage.visit(gf);
 
 	}
 
@@ -262,7 +267,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				double gf = firingOffset > 0 ? firingOffset / _mae
 						: -firingOffset / _mae;
 
-				updateGFs(gf);
+				gfStorage.visit(gf);
 				toRemove.add(bullet);
 
 				// Rectangle2D _fpos = new
@@ -284,42 +289,6 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 	}
 
-	private void updateGFs(double gf) {
-
-		int bin = (int) (gf * NUM_BINS / 2.);
-		bin += NUM_BINS / 2;
-
-		for (int i = 0; i < NUM_BINS; i++) {
-			// _targetingStorage[i] /= 3.;
-			if (i == bin) {
-				_targetingStorage[i] += 1;
-				continue;
-			}
-
-			_targetingStorage[i] += 1. / (Math.abs(bin - i) * 2);
-		}
-	}
-
-	private double getBestGF() {
-		double max = Double.MIN_VALUE;
-		int bin = 0;
-
-		// TODO get best "three bin" average
-		for (int i = 0; i < NUM_BINS; i++) {
-			if (_targetingStorage[i] > max) {
-				max = _targetingStorage[i];
-				bin = i;
-			}
-		}
-
-		if (bin < NUM_BINS / 2) {
-			return -(1 - 1. / NUM_BINS / 2 * bin);
-		} else if (bin > NUM_BINS / 2) {
-			return 1. / (NUM_BINS / 2) * (bin - NUM_BINS / 2);
-		} else
-			return 0;
-
-	}
 
 	private double surfWave(GBulletFiredEvent nearestWave,
 			double bearingOffset, int direction) {
@@ -363,7 +332,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			}
 		}
 
-		return waves.getDanger(gf);
+		return riskStorage.getVisits(gf);
 	}
 
 	private double firingOffset(Point2D firingPosition, Point2D targetPosition,
@@ -400,7 +369,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		else
 			firePower = 3 - (distance / maxDistance) * 3;
 
-		double bestGF = getBestGF();
+		double bestGF = gfStorage.getPeak();
 		double mae = 0;
 		int cw = 0;
 		if (bestGF > 0) {

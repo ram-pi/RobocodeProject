@@ -69,14 +69,7 @@ public class WaveSurfer {
 		}
 		return danger;
 	}
-	
-	public void consumeOnHitEvent(HitByBulletEvent event) {
-		
-	}
-	
-	public void consumeBulletHitBulletEvent(BulletHitBulletEvent event) {
-		
-	}
+
 	public void hit(double gf) {
 		
 		int bin = (int)(gf * NUM_BINS/2.);
