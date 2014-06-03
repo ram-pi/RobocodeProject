@@ -3,7 +3,6 @@ package org.robot;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Shape;
-import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
@@ -12,7 +11,7 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.Random;
 
-import org.pattern.movement.MAE;
+
 import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.WaveSurfer;
@@ -21,16 +20,14 @@ import org.pattern.radar.GBulletFiredEvent;
 import org.pattern.radar.Radar;
 import org.pattern.utils.Utils;
 
-import com.sun.corba.se.impl.interceptors.PINoOpHandlerImpl;
-import com.sun.xml.internal.messaging.saaj.packaging.mime.Header;
+
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitBulletEvent;
-import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
 import robocode.ScannedRobotEvent;
-import sun.font.EAttribute;
+
 
 public class OneAOneMovement extends AdvancedRobot implements Observer {
 
