@@ -39,15 +39,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 	List<Shape> toDraw = new LinkedList<>();
 
-	final int STICK_LENGTH = 140;
-	final int MINIMUM_RADIUS = 114;
-
-	long lastBulletFiredTime = Long.MAX_VALUE;
-	boolean bulletJustFired = false;
-	boolean followRandom = false;
-	boolean fire = false;
 	Radar radar;
-
 	WaveSurfer waves;
 
 	double _targetingStorage[];
@@ -68,8 +60,6 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 	@Override
 	public void update(Observable arg0, Object arg1) {
 		if (arg1 instanceof GBulletFiredEvent) {
-			lastBulletFiredTime = getTime();
-			bulletJustFired = true;
 			GBulletFiredEvent wave = (GBulletFiredEvent) arg1;
 			setWaveMAE(wave, getHeading(), getVelocity());
 			waves.addWave(wave);
@@ -448,25 +438,25 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		}
 	}
 
-	private double getAimingBearing(ScannedRobotEvent event, double firePower) {
-		double angle;
-		Enemy enemy = new Enemy(event, this);
-
-		Projection proj = new Projection(enemy.getPosition(),
-				enemy.getHeading(), enemy.getVelocity(),
-				(int) Math.signum(enemy.getVelocity()), 0);
-
-		tickProjection tick = proj.projectNextTick();
-		while (tick.getPosition().distance(getX(), getY()) > tick.getTick()
-				* (20 - 3 * firePower)) {
-			tick = proj.projectNextTick();
-		}
-
-		angle = Utils.absBearing(new Point2D.Double(getX(), getY()),
-				tick.getPosition());
-
-		return angle;
-	}
+//	private double getAimingBearing(ScannedRobotEvent event, double firePower) {
+//		double angle;
+//		Enemy enemy = new Enemy(event, this);
+//
+//		Projection proj = new Projection(enemy.getPosition(),
+//				enemy.getHeading(), enemy.getVelocity(),
+//				(int) Math.signum(enemy.getVelocity()), 0);
+//
+//		tickProjection tick = proj.projectNextTick();
+//		while (tick.getPosition().distance(getX(), getY()) > tick.getTick()
+//				* (20 - 3 * firePower)) {
+//			tick = proj.projectNextTick();
+//		}
+//
+//		angle = Utils.absBearing(new Point2D.Double(getX(), getY()),
+//				tick.getPosition());
+//
+//		return angle;
+//	}
 
 	@Override
 	public void onHitRobot(HitRobotEvent event) {
@@ -475,6 +465,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 	@Override
 	public void onPaint(Graphics2D g) {
+
+		int STICK_LENGTH = 140;
+		int MINIMUM_RADIUS = 114;
 		super.onPaint(g);
 		boolean paintWS = true;
 		
