@@ -2,11 +2,17 @@ package org.pattern.utils;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.LinkedList;
+import java.util.List;
 
+import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.Projection.tickProjection;
+import org.pattern.radar.GBulletFiredEvent;
+import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
+import robocode.Robocode;
 
 
 public class Utils {
@@ -83,4 +89,71 @@ public class Utils {
 			return false;
 		return true;
 	}
-}
+	
+
+	private static double firingOffset(Point2D firingPosition, Point2D targetPosition,
+			Point2D hitPosition) {
+		double firingBearing = robocode.util.Utils
+				.normalAbsoluteAngleDegrees(Utils.absBearing(firingPosition,
+						hitPosition));
+		double bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(Utils
+				.absBearing(firingPosition, targetPosition));
+
+		double ret;
+		if (firingBearing > bearing)
+			ret = firingBearing - bearing;
+		else
+			ret = -(bearing - firingBearing);
+
+		return robocode.util.Utils.normalRelativeAngleDegrees(ret);
+	}
+	
+	public static List<Point2D> generatePoints(AdvancedRobot robot, Enemy enemy) {
+		int numPoints = 50;
+		double ENEMY_DISTANCE = 0.8;
+		List<Point2D> points = new LinkedList<>();
+		Point2D myPosition  = new Point2D.Double(robot.getX(), robot.getY());
+		double bearing;
+		
+		for (int i = 0; i < numPoints; i++) {
+			bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(robot.getHeading() + (360 / numPoints) * i);
+			points.add(calcPoint(myPosition, enemy.getDistance()*ENEMY_DISTANCE, bearing));
+		}
+		
+		return points;
+	}
+	
+	public static double getProjectedGF(AdvancedRobot robot, GBulletFiredEvent wave, Point2D toGo) {
+		Point2D myPosition = new Point2D.Double(robot.getX(), robot.getY());
+
+		double angle = robocode.util.Utils.normalAbsoluteAngleDegrees(absBearing(myPosition, toGo));
+		Move m = new Move(robot);
+		m.move(angle, robot.getHeading());
+		
+		
+		Projection projection = new Projection(myPosition, robot.getHeading(), robot.getVelocity(), m.ahead, m.turnRight);
+
+
+		tickProjection tick = projection.projectNextTick();
+		int timeElapsed = (int) (robot.getTime() - wave.getFiringTime());
+
+		while (tick.getPosition().distance(wave.getFiringPosition()) > (timeElapsed + tick
+				.getTick()) * wave.getVelocity()) {
+			tick = projection.projectNextTick();
+
+			if (m.smooth(tick.getPosition(), tick.getHeading(),
+					projection.getWantedHeading(), m.ahead)) {
+				projection.setWantedDirection(m.ahead);
+				projection.setWantedHeading(tick.getHeading() + m.turnRight);
+			}
+		}
+
+		double firingOffset = firingOffset(wave.getFiringPosition(), wave.getTargetPosition(), tick.getPosition());
+
+		double _mae = firingOffset > 0 ? wave.getMaxMAE() : wave.getMinMAE();
+		double gf = firingOffset > 0 ? firingOffset / _mae : -firingOffset
+				/ _mae;
+
+		return gf;
+	}
+ }
