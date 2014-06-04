@@ -18,6 +18,9 @@ public class GBulletFiredEvent {
 	private Point2D targetPosition;
 	private double minMAE, maxMAE;
 	
+	//valid only for bullet that _we_ fire
+	public double firingGF;
+	
 	public double getMinMAE() {
 		return minMAE;
 	}

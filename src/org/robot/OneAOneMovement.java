@@ -11,7 +11,6 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.Random;
 
-
 import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.WaveSurfer;
@@ -21,14 +20,12 @@ import org.pattern.radar.Radar;
 import org.pattern.utils.Utils;
 import org.pattern.utils.VisitCountStorage;
 
-
-
 import robocode.AdvancedRobot;
 import robocode.BulletHitBulletEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
+import robocode.Robocode;
 import robocode.ScannedRobotEvent;
-
 
 public class OneAOneMovement extends AdvancedRobot implements Observer {
 
@@ -39,7 +36,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 	Radar radar;
 	WaveSurfer waves;
-	
+
 	VisitCountStorage riskStorage, gfStorage;
 
 	double _targetingStorage[];
@@ -93,7 +90,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				.getMinMAE();
 		double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset / mae;
 
-		riskStorage.visit(gf);
+		int bin = riskStorage.visit(gf);
+		out.println("(bHb) visiting risk: " + gf + " " + bin);
 		waves.getWaves().remove(hittedWave);
 		return;
 
@@ -114,7 +112,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
 				: -firingOffset / wave.getMinMAE();
 
-		riskStorage.visit(gf);
+		int bin = riskStorage.visit(gf);
+		out.println("(hb) visiting risk: " + gf + " " + bin);
 
 	}
 
@@ -149,9 +148,10 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 								tick.getPosition()));
 			}
 
-			if (m.smooth(tick.getPosition(), tick.getHeading(), projection.getWantedHeading(), m.ahead)) {
-					projection.setWantedDirection(m.ahead);
-					projection.setWantedHeading(tick.getHeading() + m.turnRight);
+			if (m.smooth(tick.getPosition(), tick.getHeading(),
+					projection.getWantedHeading(), m.ahead)) {
+				projection.setWantedDirection(m.ahead);
+				projection.setWantedHeading(tick.getHeading() + m.turnRight);
 			}
 		}
 
@@ -179,7 +179,6 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		int cw = 1;
-		Random r = new Random();
 		maxDistance = Math.sqrt(getBattleFieldWidth() * getBattleFieldWidth()
 				+ getBattleFieldHeight() * getBattleFieldHeight());
 
@@ -187,21 +186,21 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			radar.doScan();
 			updateFiredBullets();
 
+
 			double _ahead = 0;
 			double _turnRight = 0;
 
 			waves.removePassedWaves();
 			Move m = new Move(this);
 			GBulletFiredEvent nearestWave = waves.getNearestWave();
-			double angle;
+			double angle, surfAngle = 0;
 			if (nearestWave == null && radar.getLockedEnemy() != null) {
 				Enemy e = radar.getLockedEnemy();
 				angle = org.pattern.utils.Utils
 						.absBearingPerpendicular(new Point2D.Double(getX(),
 								getY()), e.getPosition(), cw);
 				m.move(angle, getHeading());
-			}
-			else if (nearestWave != null) {
+			} else if (nearestWave != null) {
 				Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave
 						.getFiringRobot().getPosition() : radar
 						.getLockedEnemy().getPosition();
@@ -210,30 +209,33 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 					angle = org.pattern.utils.Utils.absBearingPerpendicular(
 							new Point2D.Double(getX(), getY()), enemyPosition,
 							orbitDirection);
-					
+
 					m.move(angle, getHeading());
-					
+
 					double risk = surfWave(nearestWave, m.turnRight, m.ahead);
 					if (risk < minRisk) {
 						minRisk = risk;
 						cw = orbitDirection;
+						surfAngle =  org.pattern.utils.Utils.absBearingPerpendicular(
+								new Point2D.Double(getX(), getY()), enemyPosition,
+								orbitDirection);
 					}
 				}
 			}
 
-			
-
+			m.move(surfAngle, getHeading());
 			Projection proj = new Projection(
 					new Point2D.Double(getX(), getY()), getHeading(),
 					getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
 			tickProjection t = proj.projectNextTick();
-			
-			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
-			
+
+			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
+					m.ahead);
+
 			ahead = m.ahead;
 			_turnRight = m.turnRight;
 			_ahead = ahead * 100;
-			
+
 			setAhead(_ahead);
 			setTurnRight(_turnRight);
 			execute();
@@ -241,7 +243,6 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 	}
 
 	private void updateFiredBullets() {
-		GBulletFiredEvent hittedBullet;
 		Enemy e = radar.getLockedEnemy();
 		List<GBulletFiredEvent> toRemove = new LinkedList<>();
 
@@ -267,7 +268,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				double gf = firingOffset > 0 ? firingOffset / _mae
 						: -firingOffset / _mae;
 
-				gfStorage.visit(gf);
+				int bin = gfStorage.visit(gf);
+				out.println("(bullet) update gf: " + gf + " " + bin);
+				out.println("bullet was fired with " + bullet.firingGF);
 				toRemove.add(bullet);
 
 				// Rectangle2D _fpos = new
@@ -289,13 +292,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 	}
 
-
 	private double surfWave(GBulletFiredEvent nearestWave,
 			double bearingOffset, int direction) {
 		Point2D myPosition = new Point2D.Double(getX(), getY());
-		Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave
-				.getFiringRobot().getPosition() : radar.getLockedEnemy()
-				.getPosition();
 
 		Projection projection = new Projection(myPosition, getHeading(),
 				getVelocity(), direction, bearingOffset);
@@ -303,17 +302,17 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		tickProjection tick = projection.projectNextTick();
 		int timeElapsed = (int) (getTime() - nearestWave.getFiringTime());
 		Move m = new Move(this);
-		
+
 		while (tick.getPosition().distance(nearestWave.getFiringPosition()) > (timeElapsed + tick
 				.getTick()) * nearestWave.getVelocity()) {
 			tick = projection.projectNextTick();
-			
-			if (m.smooth(tick.getPosition(), tick.getHeading(), projection.getWantedHeading(), direction)) {
+
+			if (m.smooth(tick.getPosition(), tick.getHeading(),
+					projection.getWantedHeading(), direction)) {
 				projection.setWantedDirection(m.ahead);
 				projection.setWantedHeading(tick.getHeading() + m.turnRight);
 			}
 		}
-
 
 		double firingOffset = firingOffset(nearestWave.getFiringPosition(),
 				nearestWave.getTargetPosition(), tick.getPosition());
@@ -352,7 +351,6 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		return robocode.util.Utils.normalRelativeAngleDegrees(ret);
 	}
 
-
 	@Override
 	public void onScannedRobot(ScannedRobotEvent event) {
 		radar.consumeScannedRobotEvent(event);
@@ -378,51 +376,54 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			cw = -1;
 		}
 
-		mae = getMAE(myPosition, e.getPosition(), e.getHeading(),
-				e.getVelocity(), 20 - firePower * 3, cw);
+		mae = Math.abs(getMAE(myPosition, e.getPosition(), e.getHeading(),
+				e.getVelocity(), 20 - firePower * 3, cw));
 
-		double angle = cw * bestGF * mae;
+		double angle = bestGF * mae;
 		double absBearing = Utils.absBearing(myPosition, e.getPosition());
-		angle += absBearing;
-		setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(angle
+		double bearing = absBearing + angle;
+		setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(bearing
 				- getGunHeading()));
 
-		if (getGunHeat() == 0) {
+		if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < 2.) {
 			GBulletFiredEvent bullet = new GBulletFiredEvent();
 
 			bullet.setEnergy(firePower);
 			bullet.setFiringPosition(myPosition); // TODO take the next tick
 													// position?
-			bullet.setFiringTime(getTime() + 1);
+			bullet.setFiringTime(getTime());
 			bullet.setTargetPosition(e.getPosition());
 			bullet.setVelocity(20 - firePower * 3);
 			setWaveMAE(bullet, e.getHeading(), e.getVelocity());
 
+			bullet.firingGF = (getGunHeading() - robocode.util.Utils
+					.normalAbsoluteAngleDegrees(absBearing)) / mae;
 			firedBullets.add(bullet);
 
 			setFire(firePower);
 		}
 	}
 
-//	private double getAimingBearing(ScannedRobotEvent event, double firePower) {
-//		double angle;
-//		Enemy enemy = new Enemy(event, this);
-//
-//		Projection proj = new Projection(enemy.getPosition(),
-//				enemy.getHeading(), enemy.getVelocity(),
-//				(int) Math.signum(enemy.getVelocity()), 0);
-//
-//		tickProjection tick = proj.projectNextTick();
-//		while (tick.getPosition().distance(getX(), getY()) > tick.getTick()
-//				* (20 - 3 * firePower)) {
-//			tick = proj.projectNextTick();
-//		}
-//
-//		angle = Utils.absBearing(new Point2D.Double(getX(), getY()),
-//				tick.getPosition());
-//
-//		return angle;
-//	}
+	// private double getAimingBearing(ScannedRobotEvent event, double
+	// firePower) {
+	// double angle;
+	// Enemy enemy = new Enemy(event, this);
+	//
+	// Projection proj = new Projection(enemy.getPosition(),
+	// enemy.getHeading(), enemy.getVelocity(),
+	// (int) Math.signum(enemy.getVelocity()), 0);
+	//
+	// tickProjection tick = proj.projectNextTick();
+	// while (tick.getPosition().distance(getX(), getY()) > tick.getTick()
+	// * (20 - 3 * firePower)) {
+	// tick = proj.projectNextTick();
+	// }
+	//
+	// angle = Utils.absBearing(new Point2D.Double(getX(), getY()),
+	// tick.getPosition());
+	//
+	// return angle;
+	// }
 
 	@Override
 	public void onHitRobot(HitRobotEvent event) {
@@ -435,9 +436,12 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		int STICK_LENGTH = 140;
 		int MINIMUM_RADIUS = 114;
 		super.onPaint(g);
-		boolean paintWS = true;
+		boolean paintWS = false;
+
+		drawVisitCountStorage(gfStorage, g, 20, 20);
+		drawVisitCountStorage(riskStorage, g, 400, 20);
 		
-		if (paintWS) {		
+		if (paintWS) {
 			Rectangle2D safeBF = new Rectangle2D.Double(18, 18,
 					getBattleFieldWidth() - 36, getBattleFieldHeight() - 36);
 			g.draw(safeBF);
@@ -452,10 +456,10 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 					* MINIMUM_RADIUS, getY()
 					+ Math.cos(Math.toRadians(getHeading() + 90))
 					* MINIMUM_RADIUS);
-			
+
 			drawPoint(center1, 10, g);
 			drawPoint(center2, 10, g);
-			
+
 			double heading = ahead == 1 ? getHeading() : getHeading() + 180;
 			g.drawLine((int) getX(), (int) getY(),
 					(int) (getX() + Math.sin(Math.toRadians(heading))
@@ -482,7 +486,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		for (GBulletFiredEvent wave : firedBullets) {
 			drawWaveAndMae(wave, g);
 		}
-		
+
 		g.setColor(c);
 
 		for (Shape s : toDraw) {
@@ -491,17 +495,37 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 		toDraw.clear();
 	}
-	
+
 	private void drawPoint(Point2D point, int size, Graphics2D g) {
-		g.fillRect((int)(point.getX()-size/2), (int)(point.getY()-size/2), size, size);
+		g.fillRect((int) (point.getX() - size / 2),
+				(int) (point.getY() - size / 2), size, size);
 	}
+
+	private void drawVisitCountStorage(VisitCountStorage s, Graphics2D g,
+			int x, int y) {
+
+		int SIZE = 6;
+		Color c = g.getColor();
+		double bins[] = s.getStorage();
+		for (int i = 0; i < bins.length; i++) {
+			int blu = (int) (510 / 10 * bins[i]);
+			int red = 0;
+			if (blu > 255) {
+				blu = 0;
+				red = blu - 255;
+			}
+			g.setColor(new Color(red, blu, 0));
+			g.fillRect((SIZE * i) + x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+		}
+		g.setColor(c);
+	}
+
 	private void drawWaveAndMae(GBulletFiredEvent wave, Graphics2D g) {
 		double maeLength = 300;
-		double radius = wave.getVelocity()
-				* (getTime() - wave.getFiringTime());
-		g.drawArc((int) (wave.getFiringPosition().getX() - radius),
-				(int) (wave.getFiringPosition().getY() - radius),
-				(int) radius * 2, (int) radius * 2, 0, 360);
+		double radius = wave.getVelocity() * (getTime() - wave.getFiringTime());
+		g.drawArc((int) (wave.getFiringPosition().getX() - radius), (int) (wave
+				.getFiringPosition().getY() - radius), (int) radius * 2,
+				(int) radius * 2, 0, 360);
 		g.drawRect((int) wave.getFiringPosition().getX() - 5, (int) wave
 				.getFiringPosition().getY() - 5, 10, 10);
 
@@ -512,28 +536,23 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		drawPoint(wave.getTargetPosition(), 4, g);
 		// //draw MAE
 		g.drawLine((int) wave.getFiringPosition().getX(), (int) wave
-				.getFiringPosition().getY(), (int) (wave
-				.getTargetPosition().getX()), (int) (wave
-				.getTargetPosition().getY()));
+				.getFiringPosition().getY(), (int) (wave.getTargetPosition()
+				.getX()), (int) (wave.getTargetPosition().getY()));
 
 		g.drawLine(
 				(int) wave.getFiringPosition().getX(),
 				(int) wave.getFiringPosition().getY(),
 				(int) (wave.getFiringPosition().getX() + Math.sin(Math
-						.toRadians(absBearing + wave.getMaxMAE()))
-						* maeLength),
+						.toRadians(absBearing + wave.getMaxMAE())) * maeLength),
 				(int) (wave.getFiringPosition().getY() + Math.cos(Math
-						.toRadians(absBearing + wave.getMaxMAE()))
-						* maeLength));
+						.toRadians(absBearing + wave.getMaxMAE())) * maeLength));
 
 		g.drawLine(
 				(int) wave.getFiringPosition().getX(),
 				(int) wave.getFiringPosition().getY(),
 				(int) (wave.getFiringPosition().getX() + Math.sin(Math
-						.toRadians(absBearing + wave.getMinMAE()))
-						* maeLength),
+						.toRadians(absBearing + wave.getMinMAE())) * maeLength),
 				(int) (wave.getFiringPosition().getY() + Math.cos(Math
-						.toRadians(absBearing + wave.getMinMAE()))
-						* maeLength));
+						.toRadians(absBearing + wave.getMinMAE())) * maeLength));
 	}
 }
