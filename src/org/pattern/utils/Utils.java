@@ -157,4 +157,20 @@ public class Utils {
 
 		return gf;
 	}
+	
+	public static double calculateGF(GBulletFiredEvent wave, Point2D point) {
+		double firingOffset = firingOffset(wave.getFiringPosition(),
+				wave.getTargetPosition(), point);
+
+		double _mae = firingOffset > 0 ? wave.getMaxMAE() : wave.getMinMAE();
+		double gf = firingOffset > 0 ? firingOffset / _mae : -firingOffset
+				/ _mae;
+		
+		return gf;
+	}
+	
+	public static double getDistanceFromWall(Point2D position, Rectangle2D battlefield) {
+		return Math.max(Math.abs(position.getX() - battlefield.getWidth()), Math.abs(position.getY()- battlefield.getHeight()));
+	}
+	
  }

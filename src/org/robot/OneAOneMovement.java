@@ -90,8 +90,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				.getMinMAE();
 		double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset / mae;
 
-		int bin = riskStorage.visit(gf);
-		out.println("(bHb) visiting risk: " + gf + " " + bin);
+		riskStorage.visit(gf);
+
 		waves.getWaves().remove(hittedWave);
 		return;
 
@@ -113,7 +113,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				: -firingOffset / wave.getMinMAE();
 
 		int bin = riskStorage.visit(gf);
-		out.println("(hb) visiting risk: " + gf + " " + bin);
+
 
 	}
 
@@ -182,12 +182,13 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		maxDistance = Math.sqrt(getBattleFieldWidth() * getBattleFieldWidth()
 				+ getBattleFieldHeight() * getBattleFieldHeight());
 
-		
+		GBulletFiredEvent nearestWave, lastWave = null;
 		Point2D toGo = null;
 		while (true) {
 			radar.doScan();
 			updateFiredBullets();
 
+			
 
 			double _ahead = 0;
 			double _turnRight = 0;
@@ -195,7 +196,13 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 			waves.removePassedWaves();
 			Move m = new Move(this);
-			GBulletFiredEvent nearestWave = waves.getNearestWave();
+
+			nearestWave = waves.getNearestWave();
+			
+			if (lastWave != nearestWave)
+				toGo = null;
+			
+			lastWave = nearestWave;
 			double angle, surfAngle = 0;
 			if (nearestWave == null && radar.getLockedEnemy() != null) {
 				Enemy e = radar.getLockedEnemy();
@@ -203,6 +210,12 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 						.absBearingPerpendicular(new Point2D.Double(getX(),
 								getY()), e.getPosition(), cw);
 				m.move(angle, getHeading());
+				Projection proj = new Projection(
+						new Point2D.Double(getX(), getY()), getHeading(),
+						getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
+				tickProjection t = proj.projectNextTick();
+				m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
+				
 			} else if (toGo == null && nearestWave != null) {
 				Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave
 						.getFiringRobot().getPosition() : radar
@@ -213,13 +226,18 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				double minRisk = Double.MAX_VALUE;
 				
 				for (Point2D p : Utils.generatePoints(this, e)) {
+					if (p.distance(enemyPosition)< 40) 
+						continue;
+					
 					double gf = Utils.getProjectedGF(this, nearestWave, p);
 					double risk = waves.getDanger(gf);
 					if (risk < minRisk) {
 						minRisk = risk;
 						toGo = p;
 					}
+					
 				}
+				out.println("surfing at gf "+Utils.getProjectedGF(this, nearestWave, toGo));
 			}
 			
 			if (toGo != null) {
@@ -287,9 +305,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				double gf = firingOffset > 0 ? firingOffset / _mae
 						: -firingOffset / _mae;
 
+				gfStorage.decay(1.1);
 				int bin = gfStorage.visit(gf);
-				out.println("(bullet) update gf: " + gf + " " + bin);
-				out.println("bullet was fired with " + bullet.firingGF);
+
 				toRemove.add(bullet);
 
 				// Rectangle2D _fpos = new
@@ -382,7 +400,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		Point2D myPosition = new Point2D.Double(getX(), getY());
 
 		if (getEnergy() < 30)
-			firePower = 1.;
+			firePower = 0.5;
 		else
 			firePower = 3 - (distance / maxDistance) * 3;
 
@@ -455,7 +473,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		int STICK_LENGTH = 140;
 		int MINIMUM_RADIUS = 114;
 		super.onPaint(g);
-		boolean paintWS = true;
+		boolean paintWS = false;
+		boolean drawGF = false;
+		boolean drawWave = true;
 
 		drawVisitCountStorage(gfStorage, g, 20, 20);
 		drawVisitCountStorage(riskStorage, g, 400, 20);
@@ -497,13 +517,17 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		Color c = g.getColor();
 		g.setColor(Color.RED);
 
-		for (GBulletFiredEvent wave : waves.getWaves()) {
-			drawWaveAndMae(wave, g);
+		if (drawWave) {
+			for (GBulletFiredEvent wave : waves.getWaves()) {
+				drawWaveAndMae(wave, g);
+			}
 		}
 
 		g.setColor(Color.GREEN);
-		for (GBulletFiredEvent wave : firedBullets) {
-			drawWaveAndMae(wave, g);
+		if (drawGF) {
+			for (GBulletFiredEvent wave : firedBullets) {
+				drawWaveAndMae(wave, g);
+			}
 		}
 
 		g.setColor(c);

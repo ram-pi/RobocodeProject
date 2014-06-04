@@ -39,6 +39,12 @@ public class VisitCountStorage {
 		return bin;
 	}
 	
+	public void decay(double factor) {
+		for (int i = 0; i < NUM_BINS; i++) {
+			storage[i]/= factor;
+		}
+	}
+	
 	public double getVisits(double gf) {
 		double danger = 0;
 		int bin = (int)(gf * NUM_BINS/2);
