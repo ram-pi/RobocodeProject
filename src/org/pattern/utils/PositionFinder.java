@@ -29,12 +29,18 @@ public class PositionFinder {
 		Random rand = new Random(Double.doubleToLongBits(Math.random()));
 		Double x = rand.nextDouble()*1000;
 		Double y = rand.nextDouble()*1000;
-		x = x%(w-60);
-		y = y%(h-60);
+		x = x%(w-40);
+		y = y%(h-40);
 		if (x < 30 || y < 30)
 			return generateRandomPoint();
 		Point2D.Double ret = new Point2D.Double(x, y);
 		return ret;
+	}
+	
+	/* Return random double between 0.0 and 1.0*/
+	public Double generateRandomDouble() {
+		Random rand = new Random(Double.doubleToLongBits(Math.random()));
+		return rand.nextDouble();
 	}
 	
 	public Double generateRandomAngle() {
@@ -51,12 +57,27 @@ public class PositionFinder {
 			Double distance = p.distance(e.getPosition());
 			eval += e.getEnergy() / Math.pow(distance, 2);
 		}
-		Double distanceFromX = findDistanceFromX(p);
-		Double distanceFromY = findDistanceFromY(p);
-		eval+= distanceFromX/4000 + distanceFromY/4000;
+		
+		eval += minimumDistanceFromCorner(p);
+		if (isOnTheSameRect(p))
+			eval *= 0.4;
+		
 		return eval;
 	}
 	
+	private boolean isOnTheSameRect(java.awt.geom.Point2D.Double p) {
+		if (p.getX() > robot.getX()-20 && p.getX() < robot.getX()+20) 
+		{
+			return true;
+		}
+		if (p.getY() > robot.getY()-20 && p.getY() < robot.getY()+20)
+		{
+			return true;
+		}
+		
+		return false;
+	}
+
 	private Double findDistanceFromY(java.awt.geom.Point2D.Double p) {
 		Double ret;
 		if (p.getX() > robot.getBattleFieldWidth()/2) {
@@ -112,13 +133,17 @@ public class PositionFinder {
 	
 	public Point2D.Double findBestPointInRangeWithRandomOffset(int attempt) {
 		Enemy e = findNearest();
+		if (e == null) {
+			return findBestPointInRange(200, 100.0);
+		}
 		Point2D.Double ret = new Point2D.Double();
 		Double minimumRisk = Double.MAX_VALUE;
 		Point2D.Double myPos = new Point2D.Double(robot.getX(), robot.getY());
 		int i = 0;
 		while (i < attempt) {
 			i++;
-			Point2D.Double tmp = Utils.calcPoint(myPos, e.getDistance()*0.6, generateRandomAngle());
+			Double randomDistance = generateRandomDouble()*e.getDistance();
+			Point2D.Double tmp = Utils.calcPoint(myPos, randomDistance, generateRandomAngle());
 			Double tmpEval = evaluateRisk(tmp);
 			if (tmpEval < minimumRisk && inBattlefield(tmp)) {
 				minimumRisk = tmpEval;
@@ -139,6 +164,9 @@ public class PositionFinder {
 	}
 
 	private Enemy findNearest() {
+		if (enemies == null)
+			return null;
+		
 		Enemy ret = new Enemy();
 		Point2D.Double myPos = new Point2D.Double(robot.getX(), robot.getY());
 		Double minimum = Double.MAX_VALUE;
@@ -151,6 +179,20 @@ public class PositionFinder {
 			}
 		}
 		return ret;
+	}
+	
+	public Double minimumDistanceFromCorner (Point2D p) {
+		Point2D cornerNE = new Point2D.Double(robot.getBattleFieldWidth(), robot.getBattleFieldHeight());
+		Point2D cornerSE = new Point2D.Double(robot.getBattleFieldWidth(), 0);
+		Point2D cornerSO = new Point2D.Double(0, 0);
+		Point2D cornerNO = new Point2D.Double(0, robot.getBattleFieldHeight());
+		
+		Double distanceNE = p.distance(cornerNE);
+		Double distanceSE = p.distance(cornerSE);
+		Double distanceSO = p.distance(cornerSO);
+		Double distanceNO = p.distance(cornerNO);
+		
+		return Math.min(Math.min(distanceNO, distanceNE), Math.min(distanceSE, distanceSO));
 	}
 
 	public Hashtable<String, Enemy> getEnemies() {

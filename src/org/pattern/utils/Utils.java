@@ -2,11 +2,11 @@ package org.pattern.utils;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.pattern.movement.Projection;
 import org.pattern.movement.Projection.tickProjection;
+
+import robocode.AdvancedRobot;
 
 
 public class Utils {
@@ -41,35 +41,6 @@ public class Utils {
 	
 		return robocode.util.Utils.normalAbsoluteAngleDegrees(theta);
 	}
-
-//	public double WallSmoothing(Point2D.Double position, double velocity, double heading, Rectangle2D.Double rect, int turningDirection) {
-//
-//		//TODO how many ticks we check?
-//
-//		boolean hitWall = true;
-//		double angle = 0;
-//		int tries = 0;
-//
-//		while (!hitWall) {
-//			Projection proj = new Projection(position, velocity, heading, (int)Math.signum(velocity), 0);
-//			hitWall = false;
-//			for (int t=0;t < 25; t++) {
-//				tickProjection tick = proj.projectNextTick();
-//				if (!rect.contains(tick.getPosition())) {
-//					hitWall = true;
-//					angle += .5 * turningDirection;
-//					break;
-//				}
-//			}
-//			
-//			if (tries > 25) {
-//				return -1;
-//			}
-//			tries++;
-//			
-//		}
-//		return angle;
-//	}
 	
 	public static int WallSmoothing(Projection proj, int turningDirection, Rectangle2D.Double rect, int numberOfTicks) {
 
@@ -106,45 +77,10 @@ public class Utils {
 	public static double calcAngle(Point2D p2,Point2D p1){
 		return Math.atan2(p2.getX() - p1.getX(), p2.getY() - p1.getY());
 	}
-	
-//	public static Quadrant getQuadrant(Point2D position, Rectangle2D battleField) {
-//		
-//		if (position.getX() < battleField.getWidth()/2) {
-//			if (position.getY() < battleField.getHeight()/2) {
-//				return Quadrant.SW;
-//			}
-//			else {
-//				return Quadrant.NW;
-//			}
-//		}
-//		else {
-//			if (position.getY() < battleField.getHeight()/2) {
-//				return Quadrant.SE;
-//			}
-//			else 
-//				return Quadrant.SW;
-//		}
-//	}
-//	
-//	public static int getTurningDirection(Quadrant quadrant, double heading, int direction) {
-//		heading = robocode.util.Utils.normalAbsoluteAngle(heading);
-//		if (quadrant == Quadrant.NW || quadrant == Quadrant.SW) {
-//			if (heading > 0 && heading < 90  || heading > 270 && heading < 360) {
-//				return 1 * direction;
-//			}
-//			else {
-//				return -1 * direction;
-//			}
-//		}
-//		else if(quadrant == Quadrant.NE || quadrant == Quadrant.SE) {
-//			if (heading > 0 && heading < 90  || heading > 270 && heading < 360) {
-//				return 1 * direction;
-//			}
-//			else {
-//				return -1 * direction;
-//			}
-//		}
-//		return 1;
-//	}
 
+	public static Boolean pointInBattlefield(AdvancedRobot robot, Point2D p) {
+		if (p.getX() > robot.getBattleFieldWidth() || p.getX() < 0 || p.getY() > robot.getBattleFieldHeight() || p.getY() < 0)
+			return false;
+		return true;
+	}
 }
