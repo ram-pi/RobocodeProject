@@ -2,6 +2,7 @@ package org.pattern.utils;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,6 +17,8 @@ import robocode.Robocode;
 
 
 public class Utils {
+	
+	static int NUM_BITS_VALUE = 4;
 
 	public static double Max(double a, double b) {
 		return a>b?a:b;
@@ -169,8 +172,30 @@ public class Utils {
 		return gf;
 	}
 	
-	public static double getDistanceFromWall(Point2D position, Rectangle2D battlefield) {
-		return Math.max(Math.abs(position.getX() - battlefield.getWidth()), Math.abs(position.getY()- battlefield.getHeight()));
+	public static double getDistanceFromWall(Point2D position, double width, double height) {
+		return Math.max(Math.abs(position.getX() - width), Math.abs(position.getY()- height));
+	}
+	
+	public static void setMeasure(double value, double maxValue, int startIndex, BitSet bitSet) {
+		for (int i = 0; i < NUM_BITS_VALUE; i++) {
+			if(value > maxValue/(double)i)
+				bitSet.set(i+startIndex);
+		}
+	}
+	public static BitSet getSnapshot(AdvancedRobot robot, Enemy enemy, GBulletFiredEvent wave) {
+		BitSet ret = new BitSet();
+		int NUM_MEASURES = 5;
+		
+		double maxDistance = Math.max(robot.getBattleFieldHeight(), robot.getBattleFieldWidth());
+
+		setMeasure(robot.getVelocity(), 8., 0, ret);
+		setMeasure(enemy.getVelocity(), 8., NUM_BITS_VALUE, ret);
+		setMeasure(wave.getVelocity(), 20., NUM_BITS_VALUE*2, ret);
+		setMeasure(enemy.getPosition().distance(robot.getX(), robot.getY()), maxDistance, NUM_BITS_VALUE*3, ret);
+		setMeasure(getDistanceFromWall(enemy.getPosition(), robot.getBattleFieldWidth(), robot.getBattleFieldHeight()), maxDistance, NUM_BITS_VALUE*3, ret);
+		
+		
+		return ret;
 	}
 	
  }
