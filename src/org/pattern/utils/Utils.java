@@ -117,7 +117,8 @@ public class Utils {
 		
 		for (int i = 0; i < numPoints; i++) {
 			bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(robot.getHeading() + (360 / numPoints) * i);
-			points.add(calcPoint(myPosition, enemy.getDistance()*ENEMY_DISTANCE, bearing));
+			double distance = Math.min(ENEMY_DISTANCE*enemy.getDistance(), 100);
+			points.add(calcPoint(myPosition, distance, bearing));
 		}
 		
 		return points;

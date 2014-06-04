@@ -182,6 +182,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		maxDistance = Math.sqrt(getBattleFieldWidth() * getBattleFieldWidth()
 				+ getBattleFieldHeight() * getBattleFieldHeight());
 
+		
+		Point2D toGo = null;
 		while (true) {
 			radar.doScan();
 			updateFiredBullets();
@@ -189,6 +191,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 			double _ahead = 0;
 			double _turnRight = 0;
+
 
 			waves.removePassedWaves();
 			Move m = new Move(this);
@@ -200,38 +203,54 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 						.absBearingPerpendicular(new Point2D.Double(getX(),
 								getY()), e.getPosition(), cw);
 				m.move(angle, getHeading());
-			} else if (nearestWave != null) {
+			} else if (toGo == null && nearestWave != null) {
 				Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave
 						.getFiringRobot().getPosition() : radar
 						.getLockedEnemy().getPosition();
+				Enemy e = radar.getLockedEnemy() == null ? nearestWave
+						.getFiringRobot() : radar
+						.getLockedEnemy();
 				double minRisk = Double.MAX_VALUE;
-				for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) {
-					angle = org.pattern.utils.Utils.absBearingPerpendicular(
-							new Point2D.Double(getX(), getY()), enemyPosition,
-							orbitDirection);
-
-					m.move(angle, getHeading());
-
-					double risk = surfWave(nearestWave, m.turnRight, m.ahead);
+				
+				for (Point2D p : Utils.generatePoints(this, e)) {
+					double gf = Utils.getProjectedGF(this, nearestWave, p);
+					double risk = waves.getDanger(gf);
 					if (risk < minRisk) {
 						minRisk = risk;
-						cw = orbitDirection;
-						surfAngle =  org.pattern.utils.Utils.absBearingPerpendicular(
-								new Point2D.Double(getX(), getY()), enemyPosition,
-								orbitDirection);
+						toGo = p;
 					}
 				}
 			}
+			
+			if (toGo != null) {
+				double togoAngle = Utils.absBearing(new Point2D.Double(getX(), getY()), toGo);
+				m.move(togoAngle, getHeading());
+				Projection proj = new Projection(
+						new Point2D.Double(getX(), getY()), getHeading(),
+						getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
+				tickProjection t = proj.projectNextTick();
+				if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
+						m.ahead) || toGo.distance(getX(), getY()) < 40) 
+					toGo = null;
 
-			m.move(surfAngle, getHeading());
-			Projection proj = new Projection(
-					new Point2D.Double(getX(), getY()), getHeading(),
-					getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
-			tickProjection t = proj.projectNextTick();
+				
+			}
+			
+			boolean drawTogo = true;
+			if (drawTogo && toGo != null) {
+				Rectangle2D rect = new Rectangle2D.Double(toGo.getX()-2, toGo.getY()-2, 4, 4);
+				toDraw.add(rect);
+			}
 
-			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
-					m.ahead);
-
+//			m.move(surfAngle, getHeading());
+//			Projection proj = new Projection(
+//					new Point2D.Double(getX(), getY()), getHeading(),
+//					getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
+//			tickProjection t = proj.projectNextTick();
+//
+//			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
+//					m.ahead);
+//
 			ahead = m.ahead;
 			_turnRight = m.turnRight;
 			_ahead = ahead * 100;
@@ -436,7 +455,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		int STICK_LENGTH = 140;
 		int MINIMUM_RADIUS = 114;
 		super.onPaint(g);
-		boolean paintWS = false;
+		boolean paintWS = true;
 
 		drawVisitCountStorage(gfStorage, g, 20, 20);
 		drawVisitCountStorage(riskStorage, g, 400, 20);
