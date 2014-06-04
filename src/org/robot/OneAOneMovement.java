@@ -5,8 +5,10 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Random;
@@ -19,13 +21,18 @@ import org.pattern.radar.GBulletFiredEvent;
 import org.pattern.radar.Radar;
 import org.pattern.utils.Utils;
 import org.pattern.utils.VisitCountStorage;
+import org.pattern.utils.VisitCountStorageSegmented;
 
 import robocode.AdvancedRobot;
+import robocode.BattleEndedEvent;
+import robocode.BattleResults;
 import robocode.BulletHitBulletEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
 import robocode.Robocode;
+import robocode.RoundEndedEvent;
 import robocode.ScannedRobotEvent;
+import robocode.SkippedTurnEvent;
 
 public class OneAOneMovement extends AdvancedRobot implements Observer {
 
@@ -37,13 +44,15 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 	Radar radar;
 	WaveSurfer waves;
 
-	VisitCountStorage riskStorage, gfStorage;
+	VisitCountStorage riskStorage;
+	VisitCountStorageSegmented gfStorage;
 
 	double _targetingStorage[];
 	public int NUM_BINS = 43;
 	List<GBulletFiredEvent> firedBullets;
 
 	double maxDistance;
+	int skippedTurns;
 
 	public OneAOneMovement() {
 		radar = new Radar(this);
@@ -51,7 +60,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		waves = new WaveSurfer(this);
 
 		riskStorage = new VisitCountStorage();
-		gfStorage = new VisitCountStorage();
+		gfStorage = new VisitCountStorageSegmented();
 
 		firedBullets = new LinkedList<>();
 	}
@@ -89,6 +98,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		double mae = firingOffset > 0 ? hittedWave.getMaxMAE() : hittedWave
 				.getMinMAE();
 		double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset / mae;
+
 
 		riskStorage.visit(gf);
 
@@ -305,8 +315,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				double gf = firingOffset > 0 ? firingOffset / _mae
 						: -firingOffset / _mae;
 
-				gfStorage.decay(1.1);
-				int bin = gfStorage.visit(gf);
+				//gfStorage.decay(1.1);
+				int bin = gfStorage.visit(bullet.getSnapshot(), gf);
 
 				toRemove.add(bullet);
 
@@ -404,7 +414,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		else
 			firePower = 3 - (distance / maxDistance) * 3;
 
-		double bestGF = gfStorage.getPeak();
+		BitSet snapshot = Utils.getSnapshot(this, e);
+		double bestGF = gfStorage.getPeak(snapshot);
 		double mae = 0;
 		int cw = 0;
 		if (bestGF > 0) {
@@ -431,6 +442,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			bullet.setFiringTime(getTime());
 			bullet.setTargetPosition(e.getPosition());
 			bullet.setVelocity(20 - firePower * 3);
+			bullet.setSnapshot(snapshot);
 			setWaveMAE(bullet, e.getHeading(), e.getVelocity());
 
 			bullet.firingGF = (getGunHeading() - robocode.util.Utils
@@ -468,17 +480,27 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 	}
 
 	@Override
+	public void onRoundEnded(RoundEndedEvent event) {
+		out.println("Skipped turns: " + (double)skippedTurns + " perc " + (double)skippedTurns/event.getTurns());
+	}
+	@Override
+	public void onSkippedTurn(SkippedTurnEvent event) {
+		skippedTurns++;
+	}
+	@Override
 	public void onPaint(Graphics2D g) {
 
 		int STICK_LENGTH = 140;
 		int MINIMUM_RADIUS = 114;
 		super.onPaint(g);
 		boolean paintWS = false;
-		boolean drawGF = false;
-		boolean drawWave = true;
+		boolean drawGF = true;
+		boolean drawWave = false;
+		
+		Color c = g.getColor();
 
-		drawVisitCountStorage(gfStorage, g, 20, 20);
-		drawVisitCountStorage(riskStorage, g, 400, 20);
+		drawVisitCountStorageSegmented(gfStorage, g, 20, 20);
+		drawVisitCountStorage(riskStorage.getStorage(), g, 400, 20);
 		
 		if (paintWS) {
 			Rectangle2D safeBF = new Rectangle2D.Double(18, 18,
@@ -514,7 +536,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 					MINIMUM_RADIUS * 2, MINIMUM_RADIUS * 2, 0, 360);
 
 		}
-		Color c = g.getColor();
+		c = g.getColor();
 		g.setColor(Color.RED);
 
 		if (drawWave) {
@@ -530,37 +552,62 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			}
 		}
 
-		g.setColor(c);
-
+		g.setColor(Color.BLUE);
 		for (Shape s : toDraw) {
 			g.draw(s);
 		}
 
+		g.setColor(c);
+
+
 		toDraw.clear();
 	}
+	
+
 
 	private void drawPoint(Point2D point, int size, Graphics2D g) {
 		g.fillRect((int) (point.getX() - size / 2),
 				(int) (point.getY() - size / 2), size, size);
 	}
 
-	private void drawVisitCountStorage(VisitCountStorage s, Graphics2D g,
+	private void drawVisitCountStorage(double[] bins, Graphics2D g,
 			int x, int y) {
 
 		int SIZE = 6;
 		Color c = g.getColor();
-		double bins[] = s.getStorage();
+
 		for (int i = 0; i < bins.length; i++) {
-			int blu = (int) (510 / 10 * bins[i]);
+			int green = (int) (510 / 5 * bins[i]);
 			int red = 0;
-			if (blu > 255) {
-				blu = 0;
-				red = blu - 255;
+			if (green > 255) {
+				green = 0;
+				red = green - 255;
 			}
-			g.setColor(new Color(red, blu, 0));
+			if (green == 0) {
+				red = 255; 
+			}
+			g.setColor(new Color(red, green, 10));
 			g.fillRect((SIZE * i) + x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
 		}
 		g.setColor(c);
+	}
+	
+	private void drawVisitCountStorageSegmented(VisitCountStorageSegmented s, Graphics2D g,
+			int x, int y) {
+
+		int SIZE = 6;
+		Color c = g.getColor();
+		if (radar.getLockedEnemy() == null)
+			return;
+					
+		List<BitSet> nearest = s.getNearest(Utils.getSnapshot(this, radar.getLockedEnemy()));
+		Map<BitSet, double[]> storage = s.getStorage();
+		int K = Math.min(3, nearest.size());
+		for(int i=0;i<K;i++) {
+			drawVisitCountStorage(storage.get(nearest.get(i)), g, 20, y + SIZE*i);
+		}
+		
+		
 	}
 
 	private void drawWaveAndMae(GBulletFiredEvent wave, Graphics2D g) {
@@ -597,5 +644,12 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 						.toRadians(absBearing + wave.getMinMAE())) * maeLength),
 				(int) (wave.getFiringPosition().getY() + Math.cos(Math
 						.toRadians(absBearing + wave.getMinMAE())) * maeLength));
+	}
+	
+	@Override
+	public void onBattleEnded(BattleEndedEvent event) {
+		BattleResults battleResults = event.getResults();
+		out.println("Battle ended");
+		out.println("1st: " + battleResults.getFirsts() + " 2nd: " + battleResults.getSeconds());
 	}
 }

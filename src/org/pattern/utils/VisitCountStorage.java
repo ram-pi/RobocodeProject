@@ -1,32 +1,27 @@
 package org.pattern.utils;
 
 import java.io.OutputStreamWriter;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 public class VisitCountStorage {
 	private int NUM_BINS = 43;
 	private int SMOOTH_BINS = 4;
-	private Map<BitSet, double[]> storage;
+	private double storage[];
 	
-	
+	public double[] getStorage() {
+		return storage;
+	}
+
+	public void setStorage(double[] storage) {
+		this.storage = storage;
+	}
 
 	public VisitCountStorage() {
-		storage = new HashMap<BitSet, double[]>();
+		storage = new double[NUM_BINS];
 	}
 	
-	public int visit(BitSet point, double gf) {
+	public int visit(double gf) {
 		gf = Math.min(1.0, gf);
 		gf = Math.max(-1.0, gf);
-		
-		double[] bins = storage.get(point);
-		if (bins == null) {
-			bins = new double[NUM_BINS];
-			storage.put(point, bins);
-		}
 		
 		int bin = (int)(gf * NUM_BINS/2.);
 		bin += NUM_BINS/2;
@@ -34,53 +29,23 @@ public class VisitCountStorage {
 		for(int i = 0; i < NUM_BINS; i++) {
 //			storage[i] /= 3.;
 			if (i == bin) {
-				bins[i] = 1;
+				storage[i] = 1;
 				continue;
 			}
 			
-			bins[i] += 1./(Math.abs(bin - i)*2);
+			storage[i] += 1./(Math.abs(bin - i)*2);
 		}
 		
 		return bin;
 	}
 	
-//	public void decay(double factor) {
-//		for (int i = 0; i < NUM_BINS; i++) {
-//			storage[i]/= factor;
-//		}
-//	}
-	
-	private List<double[]> getNearest(BitSet point) {
-		List<BitSet> nearest = new LinkedList<>();
-		
-		int max = Integer.MIN_VALUE, min = Integer.MAX_VALUE;
-		BitSet maxElement = null;
-		for (BitSet bitset : storage.keySet()) {
-			BitSet temp = new BitSet();
-			temp.or(bitset); //cloning
-			temp.and(bitset);
-			int distance = temp.cardinality();
-			
-			if (nearest.size() < 3) {
-				nearest.add(bitset);
-				if (distance > max) {
-					max = distance;
-					maxElement = bitset;
-				}
-				continue;
-			}
-			
-			if (distance < max) {
-				BitSet toRemove = null;
-				for (Bitset bs : nearest) {
-					
-				}
-			}
-			
+	public void decay(double factor) {
+		for (int i = 0; i < NUM_BINS; i++) {
+			storage[i]/= factor;
 		}
-		
 	}
-	public double getVisits(Object p, double gf) {
+	
+	public double getVisits(double gf) {
 		double danger = 0;
 		int bin = (int)(gf * NUM_BINS/2);
 		bin += NUM_BINS/2;

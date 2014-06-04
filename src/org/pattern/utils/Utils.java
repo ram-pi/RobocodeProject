@@ -18,7 +18,7 @@ import robocode.Robocode;
 
 public class Utils {
 	
-	static int NUM_BITS_VALUE = 4;
+	static int NUM_BITS_VALUE = 12;
 
 	public static double Max(double a, double b) {
 		return a>b?a:b;
@@ -176,23 +176,38 @@ public class Utils {
 		return Math.max(Math.abs(position.getX() - width), Math.abs(position.getY()- height));
 	}
 	
+	public static double getLateralVelocity(Point2D position, Point2D target, double velocity, double heading) {
+		
+		double angle = absBearingPerpendicular(target, position, 1);
+		if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - heading)) > 90) {
+			angle += 180;
+		}
+		
+		angle =  Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - heading));
+		double latv = Math.cos(Math.toRadians(angle)) * velocity;
+		return latv;
+	}
+	
 	public static void setMeasure(double value, double maxValue, int startIndex, BitSet bitSet) {
 		for (int i = 0; i < NUM_BITS_VALUE; i++) {
-			if(value > maxValue/(double)i)
+			if(value > (maxValue/NUM_BITS_VALUE)*i)
 				bitSet.set(i+startIndex);
 		}
 	}
-	public static BitSet getSnapshot(AdvancedRobot robot, Enemy enemy, GBulletFiredEvent wave) {
+	public static BitSet getSnapshot(AdvancedRobot robot, Enemy enemy) {
 		BitSet ret = new BitSet();
 		int NUM_MEASURES = 5;
 		
+		Point2D myPos = new Point2D.Double(robot.getX(), robot.getY());
 		double maxDistance = Math.max(robot.getBattleFieldHeight(), robot.getBattleFieldWidth());
 
-		setMeasure(robot.getVelocity(), 8., 0, ret);
-		setMeasure(enemy.getVelocity(), 8., NUM_BITS_VALUE, ret);
-		setMeasure(wave.getVelocity(), 20., NUM_BITS_VALUE*2, ret);
-		setMeasure(enemy.getPosition().distance(robot.getX(), robot.getY()), maxDistance, NUM_BITS_VALUE*3, ret);
+		setMeasure(Math.abs(robot.getVelocity()), 8., 0, ret);
+		setMeasure(Math.abs(enemy.getVelocity()), 8., NUM_BITS_VALUE, ret);
+		//setMeasure(wave.getVelocity(), 20., NUM_BITS_VALUE*2, ret);
+		setMeasure(enemy.getPosition().distance(robot.getX(), robot.getY()), maxDistance, NUM_BITS_VALUE*2, ret);
 		setMeasure(getDistanceFromWall(enemy.getPosition(), robot.getBattleFieldWidth(), robot.getBattleFieldHeight()), maxDistance, NUM_BITS_VALUE*3, ret);
+		setMeasure(getLateralVelocity(myPos, enemy.getPosition(), enemy.getVelocity(), enemy.getHeading()), 90., NUM_BITS_VALUE*4, ret);
+		setMeasure(getLateralVelocity(enemy.getPosition(), myPos, robot.getVelocity(), robot.getHeading()), 90., NUM_BITS_VALUE*5, ret);
 		
 		
 		return ret;

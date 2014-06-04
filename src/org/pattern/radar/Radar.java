@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
 
+import org.pattern.utils.Utils;
 import org.robot.Enemy;
 
 import robocode.AdvancedRobot;

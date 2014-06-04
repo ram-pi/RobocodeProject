@@ -1,6 +1,7 @@
 package org.pattern.radar;
 
 import java.awt.geom.Point2D;
+import java.util.BitSet;
 
 import org.pattern.movement.MAE;
 import org.robot.Enemy;
@@ -17,7 +18,16 @@ public class GBulletFiredEvent {
 	private Point2D firingPosition;
 	private Point2D targetPosition;
 	private double minMAE, maxMAE;
+	private BitSet snapshot;
 	
+	public BitSet getSnapshot() {
+		return snapshot;
+	}
+
+	public void setSnapshot(BitSet snapshot) {
+		this.snapshot = snapshot;
+	}
+
 	//valid only for bullet that _we_ fire
 	public double firingGF;
 	
