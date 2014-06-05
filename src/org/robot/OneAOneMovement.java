@@ -22,6 +22,8 @@ import org.pattern.utils.Utils;
 import org.pattern.utils.VisitCountStorage;
 
 import robocode.AdvancedRobot;
+import robocode.BattleEndedEvent;
+import robocode.BattleResults;
 import robocode.BulletHitBulletEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
@@ -598,5 +600,13 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 						.toRadians(absBearing + wave.getMinMAE())) * maeLength),
 				(int) (wave.getFiringPosition().getY() + Math.cos(Math
 						.toRadians(absBearing + wave.getMinMAE())) * maeLength));
+	}
+	
+	public void onBattleEnded(BattleEndedEvent event) {
+		               BattleResults battleResults = event.getResults();
+		               out.println("Battle ended");
+		               out.println("1st: " + battleResults.getFirsts() + " 2nd: " + battleResults.getSeconds());
+		               out.println(battleResults.getScore());
+		               
 	}
 }
