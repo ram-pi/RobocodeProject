@@ -89,7 +89,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		for (GBulletFiredEvent wave : waves.getWaves()) {
 			if (Math.abs(bulletPosition.distance(wave.getFiringPosition())
 					- ((getTime() - wave.getFiringTime()) * event.getBullet()
-							.getVelocity())) < 20) {
+							.getVelocity())) < Costants.SURFING_BULLET_HIT_BULLET_DISTANCE) {
 				hittedWave = wave;
 				break;
 			}
@@ -189,6 +189,33 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		return;
 	}
 
+	private Point2D pointsSurfing(GBulletFiredEvent wave) {
+		Point2D toGo = null;
+		Point2D enemyPosition = radar.getLockedEnemy() == null ? wave
+				.getFiringRobot().getPosition() : radar
+				.getLockedEnemy().getPosition();
+		Enemy e = radar.getLockedEnemy() == null ? wave
+				.getFiringRobot() : radar
+				.getLockedEnemy();
+		double minRisk = Double.MAX_VALUE;
+		
+		for (Point2D p : Utils.generatePoints(this, e)) {
+			if (p.distance(enemyPosition) < Costants.POINT_MIN_DIST_ENEMY) 
+				continue;
+			
+			double gf = Utils.getProjectedGF(this, wave, p);
+
+			double risk = riskStorage.getVisits(wave.getSnapshot(), gf);
+
+			if (risk < minRisk) {
+				minRisk = risk;
+				toGo = p;
+			}
+			
+		}
+		out.println("surfing at gf "+Utils.getProjectedGF(this, wave, toGo));
+		return toGo;
+	}
 	@Override
 	public void run() {
 		setAdjustRadarForRobotTurn(true);
@@ -200,15 +227,16 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 		GBulletFiredEvent nearestWave, lastWave = null;
 		Point2D toGo = null;
+		boolean pointsSurfing = false;
+		boolean orbitSurfing = true;
 		while (true) {
 			radar.doScan();
 			updateFiredBullets();
 
-			
+			Point2D myPosition = new Point2D.Double(getX(), getY());
 
 			double _ahead = 0;
 			double _turnRight = 0;
-
 
 			waves.removePassedWaves();
 			Move m = new Move(this);
@@ -219,7 +247,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				toGo = null;
 			
 			lastWave = nearestWave;
-			double angle, surfAngle = 0;
+			double angle = 0;
 			if (nearestWave == null && radar.getLockedEnemy() != null) {
 				Enemy e = radar.getLockedEnemy();
 				angle = org.pattern.utils.Utils
@@ -232,45 +260,28 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				tickProjection t = proj.projectNextTick();
 				m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
 				
-			} else if (toGo == null && nearestWave != null) {
-				Point2D enemyPosition = radar.getLockedEnemy() == null ? nearestWave
-						.getFiringRobot().getPosition() : radar
-						.getLockedEnemy().getPosition();
-				Enemy e = radar.getLockedEnemy() == null ? nearestWave
-						.getFiringRobot() : radar
-						.getLockedEnemy();
-				double minRisk = Double.MAX_VALUE;
-				
-				for (Point2D p : Utils.generatePoints(this, e)) {
-					if (p.distance(enemyPosition) < Costants.POINT_MIN_DIST_ENEMY) 
-						continue;
-					
-					double gf = Utils.getProjectedGF(this, nearestWave, p);
-
-					double risk = riskStorage.getVisits(nearestWave.getSnapshot(), gf);
-
-					if (risk < minRisk) {
-						minRisk = risk;
-						toGo = p;
-					}
-					
-				}
-				out.println("surfing at gf "+Utils.getProjectedGF(this, nearestWave, toGo));
+			} else if (toGo == null && nearestWave != null && pointsSurfing ) {
+				toGo = pointsSurfing(nearestWave);
+			} else if (nearestWave != null && orbitSurfing) {
+				Enemy e = radar.getLockedEnemy() == null ? nearestWave.getFiringRobot() : radar.getLockedEnemy();
+				angle  = orbitSurfing(nearestWave, e);
+				m.move(angle, getHeading());
+				m.smooth(myPosition, getHeading(), m.turnRight, m.ahead);
 			}
 			
-			if (toGo != null) {
+			if (toGo != null && pointsSurfing) {
 				double togoAngle = Utils.absBearing(new Point2D.Double(getX(), getY()), toGo);
 				m.move(togoAngle, getHeading());
 				Projection proj = new Projection(
 						new Point2D.Double(getX(), getY()), getHeading(),
 						getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
 				tickProjection t = proj.projectNextTick();
-				if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
-						m.ahead) || toGo.distance(getX(), getY()) < Costants.POINT_MIN_DIST_NEXT_POINT) 
-					toGo = null;
+//				if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead)) 
+//					toGo = null;
+				m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
 			}
 			
-			boolean drawTogo = true;
+			boolean drawTogo = false;
 			if (drawTogo && toGo != null) {
 				Rectangle2D rect = new Rectangle2D.Double(toGo.getX()-2, toGo.getY()-2, 4, 4);
 				toDraw.add(rect);
@@ -345,6 +356,24 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 	}
 
+	private double orbitSurfing(GBulletFiredEvent wave, Enemy e) {
+		Move m = new Move(this);
+		Point2D myPos = new Point2D.Double(getX(), getY());
+		double angle, ret = 0;
+		double minRisk = Double.MAX_VALUE;
+		
+		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) { 
+			angle = Utils.absBearingPerpendicular(myPos, e.getPosition(), orbitDirection);
+			m.move(angle, getHeading());
+			double risk = surfWave(wave, m.turnRight, m.ahead);
+			if (risk < minRisk) {
+				minRisk = risk;
+				ret = angle;
+			}
+		}
+		return ret;
+		
+	}
 	private double surfWave(GBulletFiredEvent nearestWave,
 			double bearingOffset, int direction) {
 		Point2D myPosition = new Point2D.Double(getX(), getY());

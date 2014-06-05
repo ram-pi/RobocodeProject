@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.pattern.radar.GBulletFiredEvent;
+import org.pattern.utils.Costants;
 import org.pattern.utils.Utils;
 
 import robocode.AdvancedRobot;
@@ -30,7 +31,7 @@ public class WaveSurfer {
 		LinkedList<GBulletFiredEvent> bullet_copy = new LinkedList<>();
 		bullet_copy.addAll(bullets);
 		for (GBulletFiredEvent bullet : bullet_copy) {
-			if ((robot.getTime() - bullet.getFiringTime()) * bullet.getVelocity() > new Point2D.Double(robot.getX(), robot.getY()).distance(bullet.getFiringPosition())) {
+			if ((robot.getTime() - bullet.getFiringTime()) * bullet.getVelocity() > new Point2D.Double(robot.getX(), robot.getY()).distance(bullet.getFiringPosition()) + Costants.SURFING_REMOVE_WAVE_OFFSET) {
 //				robot.out.println("Removing waves, current gf is " + Utils.calculateGF(bullet, new Point2D.Double(robot.getX(), robot.getY())));
 				bullets.remove(bullet);
 			}
