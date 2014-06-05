@@ -10,8 +10,7 @@ import java.util.ListIterator;
 import java.util.Map;
 
 public class VisitCountStorageSegmented {
-	private int NUM_BINS = 43;
-	private int SMOOTH_BINS = 8;
+
 	private Map<BitSet, double[]> storage;
 	
 	
@@ -34,14 +33,14 @@ public class VisitCountStorageSegmented {
 		
 		double[] bins = storage.get(point);
 		if (bins == null) {
-			bins = new double[NUM_BINS];
+			bins = new double[Costants.NUM_BINS];
 			storage.put(point, bins);
 		}
 		
-		int bin = (int)(gf * NUM_BINS/2.);
-		bin += NUM_BINS/2;
+		int bin = (int)(gf * Costants.NUM_BINS/2.);
+		bin += Costants.NUM_BINS/2;
 		
-		for(int i = 0; i < NUM_BINS; i++) {
+		for(int i = 0; i < Costants.NUM_BINS; i++) {
 //			storage[i] /= 3.;
 			if (i == bin) {
 				bins[i] = 1;
@@ -55,7 +54,7 @@ public class VisitCountStorageSegmented {
 	}
 	
 //	public void decay(double factor) {
-//		for (int i = 0; i < NUM_BINS; i++) {
+//		for (int i = 0; i < Costants.NUM_BINS; i++) {
 //			storage[i]/= factor;
 //		}
 //	}
@@ -94,15 +93,15 @@ public class VisitCountStorageSegmented {
 	
 	public double getVisits(BitSet p, double gf) {
 		List<BitSet> neareset = getNearest(p);
-		int K  = Math.min(4, neareset.size());
+		int K  = Math.min(Costants.KNN_K, neareset.size());
 		double danger = 0;
 	
-		int bin = (int) (gf * NUM_BINS / 2);
-		bin += NUM_BINS / 2;
+		int bin = (int) (gf * Costants.NUM_BINS / 2);
+		bin += Costants.NUM_BINS / 2;
 		
 		for (int i = 0; i < K; i++) {
-			int startBin = Math.max(bin - SMOOTH_BINS, 0);
-			int endBin = Math.min(bin + SMOOTH_BINS, NUM_BINS);
+			int startBin = Math.max(bin - Costants.SMOOTH_BINS, 0);
+			int endBin = Math.min(bin + Costants.SMOOTH_BINS, Costants.NUM_BINS);
 
 			for (int j = startBin; j < endBin; j++) {
 				danger += storage.get(neareset.get(i))[j];
@@ -115,30 +114,30 @@ public class VisitCountStorageSegmented {
 		double max = Double.MIN_VALUE;
 		int bin = 0;
 		
-		double[] bins = new double[NUM_BINS];
+		double[] bins = new double[Costants.NUM_BINS];
 		List<BitSet> neareset = getNearest(p);
-		int K = Math.min(4, neareset.size());
+		int K = Math.min(Costants.KNN_K, neareset.size());
 
 		if (K == 0)
 			return 0.0;
 
 		for (int j = 0; j < K; j++) {
-			for (int i = 0; i < NUM_BINS; i++) {
+			for (int i = 0; i < Costants.NUM_BINS; i++) {
 				bins[i] += storage.get(neareset.get(j))[i];
 			}
 		}
 		// TODO get best "three bin" average
-		for (int i = 0; i < NUM_BINS; i++) {
+		for (int i = 0; i < Costants.NUM_BINS; i++) {
 			if (bins[i] > max) {
 				max = bins[i];
 				bin = i;
 			}
 		}
 
-		if (bin < NUM_BINS / 2) {
-			return -(1 - 1. / NUM_BINS / 2 * bin);
-		} else if (bin > NUM_BINS / 2) {
-			return 1. / (NUM_BINS / 2) * (bin - NUM_BINS / 2);
+		if (bin < Costants.NUM_BINS / 2) {
+			return -(1 - 1. / Costants.NUM_BINS / 2 * bin);
+		} else if (bin > Costants.NUM_BINS / 2) {
+			return 1. / (Costants.NUM_BINS / 2) * (bin - Costants.NUM_BINS / 2);
 		} else
 			return 0;
 	}

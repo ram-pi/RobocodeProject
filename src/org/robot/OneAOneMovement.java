@@ -19,6 +19,7 @@ import org.pattern.movement.WaveSurfer;
 import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
 import org.pattern.radar.Radar;
+import org.pattern.utils.Costants;
 import org.pattern.utils.Utils;
 import org.pattern.utils.VisitCountStorage;
 import org.pattern.utils.VisitCountStorageSegmented;
@@ -46,8 +47,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 	Radar radar;
 	WaveSurfer waves;
 
-	VisitCountStorageSegmented riskStorage;
-	VisitCountStorageSegmented gfStorage;
+	private static VisitCountStorageSegmented riskStorage;
+	private static VisitCountStorageSegmented gfStorage;
 
 	double _targetingStorage[];
 	public int NUM_BINS = 43;
@@ -61,8 +62,10 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		radar.addObserver(this);
 		waves = new WaveSurfer(this);
 
-		riskStorage = new VisitCountStorageSegmented();
-		gfStorage = new VisitCountStorageSegmented();
+		if (riskStorage == null)
+			riskStorage = new VisitCountStorageSegmented();
+		if (gfStorage == null)
+			gfStorage = new VisitCountStorageSegmented();
 
 		firedBullets = new LinkedList<>();
 	}
@@ -239,11 +242,13 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				double minRisk = Double.MAX_VALUE;
 				
 				for (Point2D p : Utils.generatePoints(this, e)) {
-					if (p.distance(enemyPosition)< 40) 
+					if (p.distance(enemyPosition) < Costants.POINT_MIN_DIST_ENEMY) 
 						continue;
 					
 					double gf = Utils.getProjectedGF(this, nearestWave, p);
+
 					double risk = riskStorage.getVisits(nearestWave.getSnapshot(), gf);
+
 					if (risk < minRisk) {
 						minRisk = risk;
 						toGo = p;
@@ -261,7 +266,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 						getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
 				tickProjection t = proj.projectNextTick();
 				if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
-						m.ahead) || toGo.distance(getX(), getY()) < 40) 
+						m.ahead) || toGo.distance(getX(), getY()) < Costants.POINT_MIN_DIST_NEXT_POINT) 
 					toGo = null;
 
 				
@@ -305,12 +310,12 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			double distanceTravelled = (getTime() - bullet.getFiringTime())
 					* bullet.getVelocity();
 
-			if (distanceFromTarget - distanceTravelled < -50) {
+			if (distanceFromTarget - distanceTravelled < Costants.GF_DIST_REMOVE_BULLET) {
 				toRemove.add(bullet);
 				continue;
 			}
 
-			if (Math.abs(distanceFromTarget - distanceTravelled) < 30) {
+			if (Math.abs(distanceFromTarget - distanceTravelled) < Costants.GF_DIST_BULLET_HIT) {
 				double firingOffset = firingOffset(bullet.getFiringPosition(),
 						bullet.getTargetPosition(), e.getPosition());
 				double _mae = firingOffset > 0 ? bullet.getMaxMAE() : bullet
@@ -414,8 +419,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		double firePower = 0;
 		Point2D myPosition = new Point2D.Double(getX(), getY());
 
-		if (getEnergy() < 30)
-			firePower = 0.5;
+		if (getEnergy() < Costants.FIREPOWER_ENERGY_TRESHOLD)
+			firePower = Costants.FIREPOWER_FP_UNDER_TRESHOLD;
 		else
 			firePower = 3 - (distance / maxDistance) * 3;
 
@@ -438,7 +443,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(bearing
 				- getGunHeading()));
 
-		if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < 2.) {
+		if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < Costants.GUN_MAX_DISPLACEMENT_DEGREE) {
 			GBulletFiredEvent bullet = new GBulletFiredEvent();
 
 			bullet.setEnergy(firePower);
@@ -557,13 +562,14 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			}
 		}
 
+
 		g.setColor(Color.BLUE);
 		for (Shape s : toDraw) {
 			g.draw(s);
 		}
 
-		g.setColor(c);
 
+		g.setColor(c);
 
 		toDraw.clear();
 	}
@@ -591,7 +597,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			if (green == 0) {
 				red = 255; 
 			}
+
 			g.setColor(new Color(red, green, 10));
+
 			g.fillRect((SIZE * i) + x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
 		}
 		g.setColor(c);

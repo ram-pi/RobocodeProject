@@ -3,6 +3,8 @@ package org.pattern.movement;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
+import org.pattern.utils.Costants;
+
 import robocode.AdvancedRobot;
 
 public class Move {
@@ -10,8 +12,7 @@ public class Move {
 	public double turnRight;
 	
 	private Rectangle2D safeBF;
-	private int STICK_LENGTH = 140;
-	private int MINIMUM_RADIUS = 114;
+
 	
 	public Move(AdvancedRobot robot) {
 		safeBF = new Rectangle2D.Double(18, 18,
@@ -37,13 +38,13 @@ public class Move {
 			return false;
 
 		Point2D center1 = new Point2D.Double(position.getX()
-				+ Math.sin(Math.toRadians(heading - 90)) * MINIMUM_RADIUS,
+				+ Math.sin(Math.toRadians(heading - 90)) * Costants.MINIMUM_RADIUS,
 				position.getY() + Math.cos(Math.toRadians(heading - 90))
-						* MINIMUM_RADIUS);
+						* Costants.MINIMUM_RADIUS);
 		Point2D center2 = new Point2D.Double(position.getX()
-				+ Math.sin(Math.toRadians(heading + 90)) * MINIMUM_RADIUS,
+				+ Math.sin(Math.toRadians(heading + 90)) * Costants.MINIMUM_RADIUS,
 				position.getY() + Math.cos(Math.toRadians(heading + 90))
-						* MINIMUM_RADIUS);
+						* Costants.MINIMUM_RADIUS);
 		Boolean smoothC1 = canSmooth(center1);
 		Boolean smoothC2 = canSmooth(center2);
 		if (!smoothC1 && !smoothC2) {
@@ -67,9 +68,9 @@ public class Move {
 	
 	private boolean stickCollide(Point2D p, Double heading) {
 		Double endX = p.getX() + Math.sin(Math.toRadians(heading))
-				* STICK_LENGTH;
+				* Costants.STICK_LENGTH;
 		Double endY = p.getY() + Math.cos(Math.toRadians(heading))
-				* STICK_LENGTH;
+				* Costants.STICK_LENGTH;
 
 		if (!safeBF.contains(endX, endY)) {
 			return true;
@@ -80,10 +81,10 @@ public class Move {
 
 	private Boolean canSmooth(Point2D center) {
 		Point2D up, down, left, right;
-		up = new Point2D.Double(center.getX(), center.getY() + MINIMUM_RADIUS);
-		down = new Point2D.Double(center.getX(), center.getY() - MINIMUM_RADIUS);
-		left = new Point2D.Double(center.getX() - MINIMUM_RADIUS, center.getY());
-		right = new Point2D.Double(center.getX() + MINIMUM_RADIUS,
+		up = new Point2D.Double(center.getX(), center.getY() + Costants.MINIMUM_RADIUS);
+		down = new Point2D.Double(center.getX(), center.getY() - Costants.MINIMUM_RADIUS);
+		left = new Point2D.Double(center.getX() - Costants.MINIMUM_RADIUS, center.getY());
+		right = new Point2D.Double(center.getX() + Costants.MINIMUM_RADIUS,
 				center.getY());
 		
 		if (!safeBF.contains(up) || !safeBF.contains(right)

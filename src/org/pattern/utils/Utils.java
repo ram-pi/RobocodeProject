@@ -18,7 +18,7 @@ import robocode.Robocode;
 
 public class Utils {
 	
-	static int NUM_BITS_VALUE = 12;
+
 
 	public static double Max(double a, double b) {
 		return a>b?a:b;
@@ -189,8 +189,8 @@ public class Utils {
 	}
 	
 	public static void setMeasure(double value, double maxValue, int startIndex, BitSet bitSet) {
-		for (int i = 0; i < NUM_BITS_VALUE; i++) {
-			if(value > (maxValue/NUM_BITS_VALUE)*i)
+		for (int i = 0; i < Costants.SEG_BITS_VARIABLE; i++) {
+			if(value > (maxValue/Costants.SEG_BITS_VARIABLE)*i)
 				bitSet.set(i+startIndex);
 		}
 	}
@@ -202,12 +202,12 @@ public class Utils {
 		double maxDistance = Math.max(robot.getBattleFieldHeight(), robot.getBattleFieldWidth());
 
 		setMeasure(Math.abs(robot.getVelocity()), 8., 0, ret);
-		setMeasure(Math.abs(enemy.getVelocity()), 8., NUM_BITS_VALUE, ret);
-		//setMeasure(wave.getVelocity(), 20., NUM_BITS_VALUE*2, ret);
-		setMeasure(enemy.getPosition().distance(robot.getX(), robot.getY()), maxDistance, NUM_BITS_VALUE*2, ret);
-		setMeasure(getDistanceFromWall(enemy.getPosition(), robot.getBattleFieldWidth(), robot.getBattleFieldHeight()), maxDistance, NUM_BITS_VALUE*3, ret);
-		setMeasure(getLateralVelocity(myPos, enemy.getPosition(), enemy.getVelocity(), enemy.getHeading()), 90., NUM_BITS_VALUE*4, ret);
-		setMeasure(getLateralVelocity(enemy.getPosition(), myPos, robot.getVelocity(), robot.getHeading()), 90., NUM_BITS_VALUE*5, ret);
+		setMeasure(Math.abs(enemy.getVelocity()), 8., Costants.SEG_BITS_VARIABLE, ret);
+		//setMeasure(wave.getVelocity(), 20., Costants.SEG_BITS_VARIABLE*2, ret);
+		setMeasure(enemy.getPosition().distance(robot.getX(), robot.getY()), maxDistance, Costants.SEG_BITS_VARIABLE*2, ret);
+		setMeasure(getDistanceFromWall(enemy.getPosition(), robot.getBattleFieldWidth(), robot.getBattleFieldHeight()), maxDistance, Costants.SEG_BITS_VARIABLE*3, ret);
+		setMeasure(getLateralVelocity(myPos, enemy.getPosition(), enemy.getVelocity(), enemy.getHeading()), 90., Costants.SEG_BITS_VARIABLE*4, ret);
+		setMeasure(getLateralVelocity(enemy.getPosition(), myPos, robot.getVelocity(), robot.getHeading()), 90., Costants.SEG_BITS_VARIABLE*5, ret);
 		
 		
 		return ret;
