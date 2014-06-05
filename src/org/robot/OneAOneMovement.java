@@ -454,9 +454,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			bullet.setVelocity(20 - firePower * 3);
 			bullet.setSnapshot(snapshot);
 			setWaveMAE(bullet, e.getHeading(), e.getVelocity());
-
 			bullet.firingGF = (getGunHeading() - robocode.util.Utils
 					.normalAbsoluteAngleDegrees(absBearing)) / mae;
+			out.println("Firing GF: " + bullet.firingGF);
 			firedBullets.add(bullet);
 
 			setFire(firePower);
@@ -504,7 +504,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		int MINIMUM_RADIUS = 114;
 		super.onPaint(g);
 		boolean paintWS = false;
-		boolean drawGF = false;
+		boolean drawGF = true;
 		boolean drawWave = true;
 		
 		Color c = g.getColor();
@@ -598,7 +598,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				red = 255; 
 			}
 
-			g.setColor(new Color(red, green, 10));
+			g.setColor(new Color(red, green, 30));
 
 			g.fillRect((SIZE * i) + x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
 		}

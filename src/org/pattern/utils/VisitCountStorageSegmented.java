@@ -99,14 +99,15 @@ public class VisitCountStorageSegmented {
 		int bin = (int) (gf * Costants.NUM_BINS / 2);
 		bin += Costants.NUM_BINS / 2;
 		
-		for (int i = 0; i < K; i++) {
-			int startBin = Math.max(bin - Costants.SMOOTH_BINS, 0);
-			int endBin = Math.min(bin + Costants.SMOOTH_BINS, Costants.NUM_BINS);
-
+		int startBin = Math.max(bin - Costants.SMOOTH_BINS, 0);
+		int endBin = Math.min(bin + Costants.SMOOTH_BINS, Costants.NUM_BINS);
+		for (int i = 0; i < K; i++) {	
 			for (int j = startBin; j < endBin; j++) {
 				danger += storage.get(neareset.get(i))[j];
 			}
 		}
+		
+		danger /= endBin - startBin;
 		return danger;
 	}
 	
@@ -128,8 +129,16 @@ public class VisitCountStorageSegmented {
 		}
 		// TODO get best "three bin" average
 		for (int i = 0; i < Costants.NUM_BINS; i++) {
-			if (bins[i] > max) {
-				max = bins[i];
+			int startBin = Math.max(i-Costants.SMOOTH_BINS, 0);
+			int endBin = Math.min(i+Costants.SMOOTH_BINS, Costants.NUM_BINS);
+			
+			double avg = 0;
+			for(int j = startBin; j < endBin; j++)
+				avg+=bins[j];
+			avg/= endBin-startBin;
+			
+			if (avg > max) {
+				max = avg;
 				bin = i;
 			}
 		}

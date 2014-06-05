@@ -112,15 +112,14 @@ public class Utils {
 	}
 	
 	public static List<Point2D> generatePoints(AdvancedRobot robot, Enemy enemy) {
-		int numPoints = 50;
 		double ENEMY_DISTANCE = 0.8;
 		List<Point2D> points = new LinkedList<>();
 		Point2D myPosition  = new Point2D.Double(robot.getX(), robot.getY());
 		double bearing;
 		
-		for (int i = 0; i < numPoints; i++) {
-			bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(robot.getHeading() + (360 / numPoints) * i);
-			double distance = Math.min(ENEMY_DISTANCE*enemy.getDistance(), 160);
+		for (int i = 0; i < Costants.SURFING_NUM_POINTS; i++) {
+			bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(robot.getHeading() + (360 / Costants.SURFING_NUM_POINTS) * i);
+			double distance = Math.min(ENEMY_DISTANCE*enemy.getDistance(), Costants.SURFING_MAX_POINT_DIST);
 			points.add(calcPoint(myPosition, distance, bearing));
 		}
 		
@@ -196,7 +195,7 @@ public class Utils {
 	}
 	public static BitSet getSnapshot(AdvancedRobot robot, Enemy enemy) {
 		BitSet ret = new BitSet();
-		int NUM_MEASURES = 5;
+
 		
 		Point2D myPos = new Point2D.Double(robot.getX(), robot.getY());
 		double maxDistance = Math.max(robot.getBattleFieldHeight(), robot.getBattleFieldWidth());
@@ -208,7 +207,7 @@ public class Utils {
 		setMeasure(getDistanceFromWall(enemy.getPosition(), robot.getBattleFieldWidth(), robot.getBattleFieldHeight()), maxDistance, Costants.SEG_BITS_VARIABLE*3, ret);
 		setMeasure(getLateralVelocity(myPos, enemy.getPosition(), enemy.getVelocity(), enemy.getHeading()), 90., Costants.SEG_BITS_VARIABLE*4, ret);
 		setMeasure(getLateralVelocity(enemy.getPosition(), myPos, robot.getVelocity(), robot.getHeading()), 90., Costants.SEG_BITS_VARIABLE*5, ret);
-		
+		setMeasure(enemy.getEnergy(), 100., Costants.SEG_BITS_VARIABLE*6, ret);
 		
 		return ret;
 	}
