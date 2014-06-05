@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class VisitCountStorageSegmented {
 	private int NUM_BINS = 43;
-	private int SMOOTH_BINS = 4;
+	private int SMOOTH_BINS = 8;
 	private Map<BitSet, double[]> storage;
 	
 	
@@ -94,14 +94,13 @@ public class VisitCountStorageSegmented {
 	
 	public double getVisits(BitSet p, double gf) {
 		List<BitSet> neareset = getNearest(p);
-		int K = 3;
+		int K  = Math.min(4, neareset.size());
 		double danger = 0;
+	
+		int bin = (int) (gf * NUM_BINS / 2);
+		bin += NUM_BINS / 2;
 		
 		for (int i = 0; i < K; i++) {
-
-			int bin = (int) (gf * NUM_BINS / 2);
-			bin += NUM_BINS / 2;
-
 			int startBin = Math.max(bin - SMOOTH_BINS, 0);
 			int endBin = Math.min(bin + SMOOTH_BINS, NUM_BINS);
 
@@ -123,8 +122,8 @@ public class VisitCountStorageSegmented {
 		if (K == 0)
 			return 0.0;
 
-		for (int i = 0; i < NUM_BINS; i++) {
-			for (int j = 0; j < K; j++) {
+		for (int j = 0; j < K; j++) {
+			for (int i = 0; i < NUM_BINS; i++) {
 				bins[i] += storage.get(neareset.get(j))[i];
 			}
 		}

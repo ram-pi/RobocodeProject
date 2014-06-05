@@ -23,6 +23,8 @@ import org.pattern.utils.Utils;
 import org.pattern.utils.VisitCountStorage;
 import org.pattern.utils.VisitCountStorageSegmented;
 
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.LocatorEx.Snapshot;
+
 import robocode.AdvancedRobot;
 import robocode.BattleEndedEvent;
 import robocode.BattleResults;
@@ -44,7 +46,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 	Radar radar;
 	WaveSurfer waves;
 
-	VisitCountStorage riskStorage;
+	VisitCountStorageSegmented riskStorage;
 	VisitCountStorageSegmented gfStorage;
 
 	double _targetingStorage[];
@@ -59,7 +61,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		radar.addObserver(this);
 		waves = new WaveSurfer(this);
 
-		riskStorage = new VisitCountStorage();
+		riskStorage = new VisitCountStorageSegmented();
 		gfStorage = new VisitCountStorageSegmented();
 
 		firedBullets = new LinkedList<>();
@@ -100,7 +102,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset / mae;
 
 
-		riskStorage.visit(gf);
+		riskStorage.visit(hittedWave.getSnapshot(), gf);
 
 		waves.getWaves().remove(hittedWave);
 		return;
@@ -122,7 +124,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
 				: -firingOffset / wave.getMinMAE();
 
-		int bin = riskStorage.visit(gf);
+		
+		int bin = riskStorage.visit(wave.getSnapshot(),gf);
 
 
 	}
@@ -240,7 +243,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 						continue;
 					
 					double gf = Utils.getProjectedGF(this, nearestWave, p);
-					double risk = waves.getDanger(gf);
+					double risk = riskStorage.getVisits(nearestWave.getSnapshot(), gf);
 					if (risk < minRisk) {
 						minRisk = risk;
 						toGo = p;
@@ -377,8 +380,10 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				toDraw.add(rect);
 			}
 		}
-
-		return riskStorage.getVisits(gf);
+		Enemy e = radar.getLockedEnemy() == null ? nearestWave.getFiringRobot() : radar.getLockedEnemy();
+		
+		BitSet snapshot = Utils.getSnapshot(this, e);
+		return riskStorage.getVisits(snapshot, gf);
 	}
 
 	private double firingOffset(Point2D firingPosition, Point2D targetPosition,
@@ -494,13 +499,13 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		int MINIMUM_RADIUS = 114;
 		super.onPaint(g);
 		boolean paintWS = false;
-		boolean drawGF = true;
-		boolean drawWave = false;
+		boolean drawGF = false;
+		boolean drawWave = true;
 		
 		Color c = g.getColor();
 
 		drawVisitCountStorageSegmented(gfStorage, g, 20, 20);
-		drawVisitCountStorage(riskStorage.getStorage(), g, 400, 20);
+		drawVisitCountStorageSegmented(riskStorage, g, 400, 20);
 		
 		if (paintWS) {
 			Rectangle2D safeBF = new Rectangle2D.Double(18, 18,
@@ -602,10 +607,17 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 					
 		List<BitSet> nearest = s.getNearest(Utils.getSnapshot(this, radar.getLockedEnemy()));
 		Map<BitSet, double[]> storage = s.getStorage();
-		int K = Math.min(3, nearest.size());
+		double[] total = new double[43];
+		int K = Math.min(4, nearest.size());
 		for(int i=0;i<K;i++) {
-			drawVisitCountStorage(storage.get(nearest.get(i)), g, 20, y + SIZE*i);
+			drawVisitCountStorage(storage.get(nearest.get(i)), g, x, y + SIZE*i);
+			for (int j = 0; j < 43; j++) {
+				total[j] += storage.get(nearest.get(i))[j];
+			}
 		}
+		drawVisitCountStorage(total, g, x, y + SIZE * K + 10);
+		
+		
 		
 		
 	}

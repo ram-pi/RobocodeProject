@@ -2,6 +2,7 @@ package org.pattern.radar;
 
 import java.awt.Point;
 import java.awt.geom.Point2D;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
@@ -127,6 +128,8 @@ public class Radar extends Observable{
 				gBulletFiredEvent.setFiringTime(robot.getTime()-1);
 				gBulletFiredEvent.setFiringPosition(cachedRobot.getPosition());//TODO this or the updated one?
 				gBulletFiredEvent.setTargetPosition(new Point2D.Double(robot.getX(), robot.getY()));
+				BitSet snapshot = Utils.getSnapshot(robot, cachedRobot);
+				gBulletFiredEvent.setSnapshot(snapshot);
 				setChanged();
 				notifyObservers(gBulletFiredEvent);
 		}
