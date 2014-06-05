@@ -53,11 +53,6 @@ public class VisitCountStorageSegmented {
 		return bin;
 	}
 	
-//	public void decay(double factor) {
-//		for (int i = 0; i < Costants.NUM_BINS; i++) {
-//			storage[i]/= factor;
-//		}
-//	}
 	
 	
 	public List<BitSet> getNearest(BitSet point) {

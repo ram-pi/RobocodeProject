@@ -268,8 +268,6 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
 						m.ahead) || toGo.distance(getX(), getY()) < Costants.POINT_MIN_DIST_NEXT_POINT) 
 					toGo = null;
-
-				
 			}
 			
 			boolean drawTogo = true;
