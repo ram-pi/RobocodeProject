@@ -211,6 +211,7 @@ public class Utils {
 		setMeasure(getLateralVelocity(myPos, enemy.getPosition(), enemy.getVelocity(), enemy.getHeading()), 90., Costants.SEG_BITS_VARIABLE*4, ret);
 		setMeasure(getLateralVelocity(enemy.getPosition(), myPos, robot.getVelocity(), robot.getHeading()), 90., Costants.SEG_BITS_VARIABLE*5, ret);
 		setMeasure(enemy.getEnergy(), 100., Costants.SEG_BITS_VARIABLE*6, ret);
+		setMeasure(enemy.getLastTimeDecel(), 50., Costants.SEG_BITS_VARIABLE*7, ret);
 		
 		return ret;
 	}

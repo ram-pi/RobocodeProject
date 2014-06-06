@@ -106,6 +106,14 @@ public class Enemy implements Comparable{
 		this.lastUpdated = robot.getTime();
 	}
 	
+	public long getLastTimeDecel() {
+		return lastTimeDecel;
+	}
+
+	public void setLastTimeDecel(long lastTimeDecel) {
+		this.lastTimeDecel = lastTimeDecel;
+	}
+
 	public Point2D getPosition(){
 		return new Point2D.Double(x, y);
 	} 
