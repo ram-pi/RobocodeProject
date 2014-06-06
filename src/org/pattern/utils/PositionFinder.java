@@ -5,6 +5,7 @@ import java.util.Hashtable;
 import java.util.Random;
 
 import org.robot.Enemy;
+
 import robocode.AdvancedRobot;
 
 public class PositionFinder {
@@ -56,13 +57,32 @@ public class PositionFinder {
 			eval += e.getEnergy() / Math.pow(distance, 2);
 		}
 		
-		eval += minimumDistanceFromCorner(p);
+		//eval += minimumDistanceFromCorner(p);
+		eval += minimumDistanceFromFrame(p);
 		if (isOnTheSameRect(p))
 			eval += eval*0.2;
 		
 		return eval;
 	}
 	
+	private Double minimumDistanceFromFrame(java.awt.geom.Point2D.Double p) {
+		
+		Double minDistanceFromX = Double.MAX_VALUE;
+		Double minDistanceFromY = Double.MAX_VALUE;
+		
+		if (robot.getX() > robot.getBattleFieldWidth()/2) {
+			minDistanceFromY = robot.getBattleFieldWidth() - robot.getX();
+		} else 
+			minDistanceFromY = robot.getX();
+		
+		if (robot.getY() > robot.getBattleFieldHeight()/2) {
+			minDistanceFromX = robot.getBattleFieldHeight() - robot.getY();
+		} else
+			minDistanceFromX = robot.getY();
+		
+		return Math.min(minDistanceFromX, minDistanceFromY);
+	}
+
 	private boolean isOnTheSameRect(java.awt.geom.Point2D.Double p) {
 		if (p.getX() > robot.getX()-20 && p.getX() < robot.getX()+20) 
 		{
@@ -121,7 +141,7 @@ public class PositionFinder {
 		while (i < attempt) {
 			i++;
 			Double randomDistance = e.getDistance()*0.8;
-			randomDistance = Math.max(randomDistance, 100);
+			randomDistance = Math.min(randomDistance, 100);
 			Point2D.Double tmp = Utils.calcPoint(myPos, randomDistance, generateRandomAngle());
 			Double tmpEval = evaluateRisk(tmp);
 			if (tmpEval < minimumRisk && inBattlefield(tmp)) {
@@ -142,7 +162,7 @@ public class PositionFinder {
 		return true;
 	}
 
-	private Enemy findNearest() {
+	public Enemy findNearest() {
 		if (enemies == null)
 			return null;
 		
@@ -193,16 +213,6 @@ public class PositionFinder {
 	public void setBattlefield(Double w, Double h) {
 		this.w = w;
 		this.h = h;
-	}
-	
-	public static void main(String[] args) {
-		PositionFinder p = new PositionFinder();
-		p.setBattlefield(800.0, 600.0);
-		int i = 0;
-		while (i < 10) {
-			i++;
-			System.out.println(p.generateRandomAngle());
-		}
 	}
 	
 }

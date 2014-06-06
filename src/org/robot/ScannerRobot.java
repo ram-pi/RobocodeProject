@@ -12,7 +12,9 @@ import java.util.Hashtable;
 import org.pattern.utils.EnemyInfo;
 import org.pattern.utils.PositionFinder;
 
+import apple.laf.JRSUIConstants.Widget;
 import robocode.AdvancedRobot;
+import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 
@@ -53,13 +55,17 @@ public class ScannerRobot extends AdvancedRobot {
 	}
 
 	private void doShooting() {
+		PositionFinder p = new PositionFinder(enemies, this);
+		en = p.findNearest();
+		
 		/* Perform head on target for gun movement */
 		double turnGunAmt = (getHeadingRadians() + en.getBearingRadians() - getGunHeadingRadians());
 		turnGunAmt = Utils.normalRelativeAngle(turnGunAmt);
 		setTurnGunRightRadians(turnGunAmt);
+		
 
 		if (getGunHeat() == 0) {
-			double firePower = Math.min(500 / en.getDistance(), 3);
+			double firePower = 3.0;
 			fire(firePower);
 		}
 	}
@@ -143,6 +149,12 @@ public class ScannerRobot extends AdvancedRobot {
 			}
 		}
 
+	}
+	
+	@Override
+	public void onRobotDeath(RobotDeathEvent event) {
+		String key = event.getName();
+		enemies.remove(key);
 	}
 
 	private void checkEnemies() {
