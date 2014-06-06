@@ -228,6 +228,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 						.getLockedEnemy();
 				double minRisk = Double.MAX_VALUE;
 				
+				
 				for (Point2D p : Utils.generatePoints(this, e)) {
 					if (p.distance(enemyPosition) < Costants.POINT_MIN_DIST_ENEMY) 
 						continue;

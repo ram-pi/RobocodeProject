@@ -9,6 +9,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.util.Hashtable;
 
+import org.pattern.utils.EnemyInfo;
 import org.pattern.utils.PositionFinder;
 
 import robocode.AdvancedRobot;
@@ -18,6 +19,7 @@ import robocode.util.Utils;
 public class ScannerRobot extends AdvancedRobot {
 
 	private Enemy en;
+	private EnemyInfo info;
 	private Double STICK_LENGTH = 140.0;
 	private Point2D nextRadarPoint;
 	private Point2D nextPosition;
@@ -25,6 +27,7 @@ public class ScannerRobot extends AdvancedRobot {
 	private Boolean radarGoingRight;
 	private Boolean corner;
 	private Hashtable<String, Enemy> enemies;
+	private Boolean meleeRadar;
 
 	@Override
 	public void run() {
@@ -33,11 +36,15 @@ public class ScannerRobot extends AdvancedRobot {
 
 		en = new Enemy();
 		enemies = new Hashtable<String, Enemy>();
+		info = new EnemyInfo();
 		radarGoingRight = true;
 		corner = false;
+		checkEnemies();
+		
 		setTurnRadarRight(360);
 
 		do {
+			checkEnemies();
 			doScan();
 			doMovement();
 			doShooting();
@@ -47,11 +54,10 @@ public class ScannerRobot extends AdvancedRobot {
 
 	private void doShooting() {
 		/* Perform head on target for gun movement */
-//		double turnGunAmt = (getHeadingRadians() + en.getBearingRadians() - getGunHeadingRadians());
-//		if (getGunTurnRemaining() < 10) {
-//			setTurnGunRightRadians(turnGunAmt);
-//		}
-//		
+		double turnGunAmt = (getHeadingRadians() + en.getBearingRadians() - getGunHeadingRadians());
+		turnGunAmt = Utils.normalRelativeAngle(turnGunAmt);
+		setTurnGunRightRadians(turnGunAmt);
+
 		if (getGunHeat() == 0) {
 			double firePower = Math.min(500 / en.getDistance(), 3);
 			fire(firePower);
@@ -66,12 +72,12 @@ public class ScannerRobot extends AdvancedRobot {
 			try {
 				PositionFinder f = new PositionFinder(enemies, this);
 				//nextPosition = f.generateRandomPoint();
-				nextPosition = f.findBestPointInRangeWithRandomOffset(300);
+				nextPosition = f.findBestPointInRangeWithRandomOffset(500);
 				goToPoint(nextPosition);
 			} catch (Exception e) {
 				System.out.println(e);
 			}
-			
+
 		} else {
 			goToPoint(nextPosition);
 		}
@@ -98,55 +104,73 @@ public class ScannerRobot extends AdvancedRobot {
 	}
 
 	private void doScan() {
-		Point2D pos = new Point2D.Double(getX(), getY());
-		Double nextRightHeading = getRadarHeading()+45;
-		Double nextLeftHeading = getRadarHeading()-45;
-		Point2D nextRadarPointRight = org.pattern.utils.Utils.calcPoint(pos, STICK_LENGTH, Math.toRadians(nextRightHeading));
-		Point2D nextRadarPointLeft = org.pattern.utils.Utils.calcPoint(pos, STICK_LENGTH, Math.toRadians(nextLeftHeading));
-		Point2D actualRadarPoint = org.pattern.utils.Utils.calcPoint(pos, STICK_LENGTH, Math.toRadians(getRadarHeading()));
-		if (radarGoingRight && !org.pattern.utils.Utils.pointInBattlefield(this, actualRadarPoint) && !org.pattern.utils.Utils.pointInBattlefield(this, nextRadarPointRight)) {
-			System.out.println("Safe rotation of 120 degrees.");
-			setTurnRadarRight(120);
-		}
-		else if (!radarGoingRight && !org.pattern.utils.Utils.pointInBattlefield(this, actualRadarPoint) && !org.pattern.utils.Utils.pointInBattlefield(this, nextRadarPointLeft)) {
-			System.out.println("Safe rotation of 120 degrees.");
-			setTurnRadarLeft(120);
-		}
-		else if (radarGoingRight) {
-			setTurnRadarRight(45);
-			nextRadarPoint = nextRadarPointRight;
-			if (!org.pattern.utils.Utils.pointInBattlefield(this, nextRadarPointRight)) {
-				radarGoingRight = false;
+		if (meleeRadar) {
+			Point2D pos = new Point2D.Double(getX(), getY());
+			Double nextRightHeading = getRadarHeading()+45;
+			Double nextLeftHeading = getRadarHeading()-45;
+			Point2D nextRadarPointRight = org.pattern.utils.Utils.calcPoint(pos, STICK_LENGTH, Math.toRadians(nextRightHeading));
+			Point2D nextRadarPointLeft = org.pattern.utils.Utils.calcPoint(pos, STICK_LENGTH, Math.toRadians(nextLeftHeading));
+			Point2D actualRadarPoint = org.pattern.utils.Utils.calcPoint(pos, STICK_LENGTH, Math.toRadians(getRadarHeading()));
+			if (radarGoingRight && !org.pattern.utils.Utils.pointInBattlefield(this, actualRadarPoint) && !org.pattern.utils.Utils.pointInBattlefield(this, nextRadarPointRight)) {
+				System.out.println("Safe rotation of 120 degrees.");
+				setTurnRadarRight(120);
 			}
-		} else if (!radarGoingRight) {
-			setTurnRadarLeft(45);
-			nextRadarPoint = nextRadarPointLeft;
-			if (!org.pattern.utils.Utils.pointInBattlefield(this, nextRadarPointLeft)) {
-				radarGoingRight = true;
+			else if (!radarGoingRight && !org.pattern.utils.Utils.pointInBattlefield(this, actualRadarPoint) && !org.pattern.utils.Utils.pointInBattlefield(this, nextRadarPointLeft)) {
+				System.out.println("Safe rotation of 120 degrees.");
+				setTurnRadarLeft(120);
+			}
+			else if (radarGoingRight) {
+				setTurnRadarRight(45);
+				nextRadarPoint = nextRadarPointRight;
+				if (!org.pattern.utils.Utils.pointInBattlefield(this, nextRadarPointRight)) {
+					radarGoingRight = false;
+				}
+			} else if (!radarGoingRight) {
+				setTurnRadarLeft(45);
+				nextRadarPoint = nextRadarPointLeft;
+				if (!org.pattern.utils.Utils.pointInBattlefield(this, nextRadarPointLeft)) {
+					radarGoingRight = true;
+				}
+			}
+		} else {
+			if (getRadarTurnRemaining() == 0 && (info == null || (getTime() > info.getLastTimeSaw()+2)))
+				setTurnRadarRight(360);
+			
+			if (getTime() == info.getLastTimeSaw()+1) {
+				setTurnRadarRight(16);
+			} else if(getTime() == info.getLastTimeSaw()+2) {
+				setTurnRadarLeft(32);
 			}
 		}
+
+	}
+
+	private void checkEnemies() {
+		if (getOthers() > 1)
+			meleeRadar = true;
+		else
+			meleeRadar = false;
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent event) {
 		en = new Enemy(event, this);
 		enemies.put(en.getName(), en);
+		info = new EnemyInfo(en, getTime());
 
-		if (getGunHeat() < 1.0) {
-			System.out.println("Prepare to target the enemy...");
+		if (!meleeRadar) {
 			Double radarTurn = getHeading() - getRadarHeading() + en.getBearing();
 			setTurnRadarRight(Utils.normalRelativeAngleDegrees(radarTurn));
-		} else {
-			doScan();
 		}
-		
+
 		doShooting();
 	}
 
 	@Override
 	public void onPaint(Graphics2D g) {
 		g.setColor(Color.red);
-		g.drawLine((int)getX(), (int)getY(), (int)nextRadarPoint.getX(), (int)nextRadarPoint.getY());
+		if (nextRadarPoint != null)
+			g.drawLine((int)getX(), (int)getY(), (int)nextRadarPoint.getX(), (int)nextRadarPoint.getY());
 		g.fillRect((int) nextPosition.getX(), (int) nextPosition.getY(), 10, 10);
 	}
 }

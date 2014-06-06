@@ -16,6 +16,7 @@ import robocode.Robocode;
 
 
 public class Utils {
+	
 
 	public static double Max(double a, double b) {
 		return a>b?a:b;
@@ -109,7 +110,7 @@ public class Utils {
 	}
 	
 	public static List<Point2D> generatePoints(AdvancedRobot robot, Enemy enemy) {
-		int numPoints = 50;
+		int numPoints = Costants.SURFING_NUM_POINTS;
 		double ENEMY_DISTANCE = 0.8;
 		List<Point2D> points = new LinkedList<>();
 		Point2D myPosition  = new Point2D.Double(robot.getX(), robot.getY());
@@ -122,6 +123,16 @@ public class Utils {
 		}
 		
 		return points;
+	}
+	
+	public static List<Point2D> generatePointsPerpendicular(AdvancedRobot robot, Enemy enemy) {
+		List<Point2D> ret = null;
+		int numPoints = Costants.SURFING_NUM_POINTS;
+		Point2D myPos = new Point2D.Double(robot.getX(), robot.getY());	
+		for (int i = 0; i < numPoints; i++) {
+			
+		}
+		return ret;
 	}
 	
 	public static double getProjectedGF(AdvancedRobot robot, GBulletFiredEvent wave, Point2D toGo) {

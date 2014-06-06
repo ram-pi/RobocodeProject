@@ -1,12 +1,10 @@
 package org.pattern.utils;
 
 import java.awt.geom.Point2D;
-import java.util.Date;
 import java.util.Hashtable;
 import java.util.Random;
 
 import org.robot.Enemy;
-import org.robot.TheTester;
 import robocode.AdvancedRobot;
 
 public class PositionFinder {
@@ -60,7 +58,7 @@ public class PositionFinder {
 		
 		eval += minimumDistanceFromCorner(p);
 		if (isOnTheSameRect(p))
-			eval *= 0.4;
+			eval += eval*0.2;
 		
 		return eval;
 	}
@@ -76,26 +74,6 @@ public class PositionFinder {
 		}
 		
 		return false;
-	}
-
-	private Double findDistanceFromY(java.awt.geom.Point2D.Double p) {
-		Double ret;
-		if (p.getX() > robot.getBattleFieldWidth()/2) {
-			ret = robot.getBattleFieldWidth() - p.getX();
-		} else {
-			ret = p.getX();
-		}
-		return ret;
-	}
-
-	private Double findDistanceFromX(java.awt.geom.Point2D.Double p) {
-		Double ret;
-		if (p.getY() > robot.getBattleFieldHeight()/2) {
-			ret = robot.getBattleFieldHeight() - p.getY();
-		} else {
-			ret = p.getY();
-		}
-		return ret;
 	}
 
 	public Point2D.Double findBestPoint(int attempt) {
@@ -142,7 +120,8 @@ public class PositionFinder {
 		int i = 0;
 		while (i < attempt) {
 			i++;
-			Double randomDistance = generateRandomDouble()*e.getDistance();
+			Double randomDistance = e.getDistance()*0.8;
+			randomDistance = Math.max(randomDistance, 100);
 			Point2D.Double tmp = Utils.calcPoint(myPos, randomDistance, generateRandomAngle());
 			Double tmpEval = evaluateRisk(tmp);
 			if (tmpEval < minimumRisk && inBattlefield(tmp)) {

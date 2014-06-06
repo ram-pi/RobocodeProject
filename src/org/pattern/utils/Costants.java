@@ -13,5 +13,7 @@ public class Costants {
 	public static double GUN_MAX_DISPLACEMENT_DEGREE = 2.;
 	public static double STICK_LENGTH = 140;
 	public static double MINIMUM_RADIUS = 114;
+	public static int SURFING_NUM_POINTS = 200;
+	public static double SURFING_MAX_POINTS_DIST = 160;
 	
 }
