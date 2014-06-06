@@ -128,51 +128,11 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				: -firingOffset / wave.getMinMAE();
 
 		
-		int bin = riskStorage.visit(wave.getSnapshot(),gf);
+		riskStorage.visit(wave.getSnapshot(),gf);
 
 
 	}
 
-	private double getMAE(Point2D firingPosition, Point2D targetPosition,
-			double targetHeading, double targetVelocity, double waveVelocity,
-			int cw) {
-
-		double angle = org.pattern.utils.Utils.absBearingPerpendicular(
-				targetPosition, firingPosition, cw);
-		Move m = new Move(this);
-		m.move(angle, targetHeading);
-		// TODO use values 2 ticks before detecting the wave
-		Projection projection = new Projection(targetPosition, targetHeading,
-				targetVelocity, m.ahead, m.turnRight);
-
-		tickProjection tick = projection.projectNextTick();
-		double tempMae = cw == -1 ? Double.MAX_VALUE : Double.MIN_VALUE;
-
-		while (tick.getPosition().distance(firingPosition) > tick.getTick()
-				* waveVelocity) {
-			tick = projection.projectNextTick();
-
-			if (cw == -1) {
-				tempMae = Math.min(
-						tempMae,
-						firingOffset(firingPosition, targetPosition,
-								tick.getPosition()));
-			} else {
-				tempMae = Math.max(
-						tempMae,
-						firingOffset(firingPosition, targetPosition,
-								tick.getPosition()));
-			}
-
-			if (m.smooth(tick.getPosition(), tick.getHeading(),
-					projection.getWantedHeading(), m.ahead)) {
-				projection.setWantedDirection(m.ahead);
-				projection.setWantedHeading(tick.getHeading() + m.turnRight);
-			}
-		}
-
-		return tempMae;
-	}
 
 	private void setWaveMAE(GBulletFiredEvent wave, double heading,
 			double velocity) {
@@ -180,9 +140,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		double mae[] = new double[2];
 		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) {
 
-			mae[orbitDirection == -1 ? 0 : 1] = getMAE(
+			mae[orbitDirection == -1 ? 0 : 1] = Utils.getMAE(
 					wave.getFiringPosition(), wave.getTargetPosition(),
-					heading, velocity, wave.getVelocity(), orbitDirection);
+					heading, velocity, wave.getVelocity(), orbitDirection, this);
 		}
 		wave.setMinMAE(Math.min(mae[0], mae[1]));
 		wave.setMaxMAE(Math.max(mae[0], mae[1]));
@@ -204,8 +164,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				continue;
 			
 			double gf = Utils.getProjectedGF(this, wave, p);
+			double mae = gf > 0 ? wave.getMaxMAE() : wave.getMinMAE();
+			double risk = Utils.getDanger(gf, Math.abs(mae), riskStorage, wave);
 
-			double risk = riskStorage.getVisits(wave.getSnapshot(), gf);
 
 			if (risk < minRisk) {
 				minRisk = risk;
@@ -333,7 +294,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 						: -firingOffset / _mae;
 
 				//gfStorage.decay(1.1);
-				int bin = gfStorage.visit(bullet.getSnapshot(), gf);
+				gfStorage.visit(bullet.getSnapshot(), gf);
 
 				toRemove.add(bullet);
 
@@ -412,10 +373,9 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				toDraw.add(rect);
 			}
 		}
-		Enemy e = radar.getLockedEnemy() == null ? nearestWave.getFiringRobot() : radar.getLockedEnemy();
-		
-		BitSet snapshot = Utils.getSnapshot(this, e);
-		return riskStorage.getVisits(snapshot, gf);
+
+		double risk = Utils.getDanger(gf, Math.abs(_mae), riskStorage, nearestWave);
+		return risk;
 	}
 
 	private double firingOffset(Point2D firingPosition, Point2D targetPosition,
@@ -441,6 +401,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 
 		Enemy e = new Enemy(event, this);
 
+		
 		double distance = event.getDistance();
 
 		double firePower = 0;
@@ -452,19 +413,8 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			firePower = 3 - (distance / maxDistance) * 3;
 
 		BitSet snapshot = Utils.getSnapshot(this, e);
-		double bestGF = gfStorage.getPeak(snapshot);
-		double mae = 0;
-		int cw = 0;
-		if (bestGF > 0) {
-			cw = 1;
-		} else {
-			cw = -1;
-		}
-
-		mae = Math.abs(getMAE(myPosition, e.getPosition(), e.getHeading(),
-				e.getVelocity(), 20 - firePower * 3, cw));
-
-		double angle = bestGF * mae;
+		double angle = Utils.getFiringAngle(gfStorage, myPosition, e, firePower, snapshot, this);
+	
 		double absBearing = Utils.absBearing(myPosition, e.getPosition());
 		double bearing = absBearing + angle;
 		setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(bearing
@@ -481,9 +431,7 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 			bullet.setVelocity(20 - firePower * 3);
 			bullet.setSnapshot(snapshot);
 			setWaveMAE(bullet, e.getHeading(), e.getVelocity());
-			bullet.firingGF = (getGunHeading() - robocode.util.Utils
-					.normalAbsoluteAngleDegrees(absBearing)) / mae;
-			out.println("Firing GF: " + bullet.firingGF);
+
 			firedBullets.add(bullet);
 
 			setFire(firePower);
@@ -530,16 +478,17 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 		int STICK_LENGTH = 140;
 		int MINIMUM_RADIUS = 114;
 		super.onPaint(g);
-		boolean paintWS = false;
+		boolean paintWS = true;
 		boolean drawGF = true;
 		boolean drawWave = true;
 		
 		Color c = g.getColor();
 
-		drawVisitCountStorageSegmented(gfStorage, g, 20, 20);
-		drawVisitCountStorageSegmented(riskStorage, g, 400, 20);
+//		drawVisitCountStorageSegmented(gfStorage, g, 20, 20);
+//		drawVisitCountStorageSegmented(riskStorage, g, 400, 20);
 		
 		if (paintWS) {
+			g.setColor(Color.magenta);
 			Rectangle2D safeBF = new Rectangle2D.Double(18, 18,
 					getBattleFieldWidth() - 36, getBattleFieldHeight() - 36);
 			g.draw(safeBF);
@@ -608,54 +557,53 @@ public class OneAOneMovement extends AdvancedRobot implements Observer {
 				(int) (point.getY() - size / 2), size, size);
 	}
 
-	private void drawVisitCountStorage(double[] bins, Graphics2D g,
-			int x, int y) {
-
-		int SIZE = 6;
-		Color c = g.getColor();
-
-		for (int i = 0; i < bins.length; i++) {
-			int green = (int) (510 / 5 * bins[i]);
-			int red = 0;
-			if (green > 255) {
-				green = 0;
-				red = green - 255;
-			}
-			if (green == 0) {
-				red = 255; 
-			}
-
-			g.setColor(new Color(red, green, 30));
-
-			g.fillRect((SIZE * i) + x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
-		}
-		g.setColor(c);
-	}
+//	private void drawVisitCountStorage(double[] bins, Graphics2D g,
+//			int x, int y) {
+//
+//		int SIZE = 6;
+//		Color c = g.getColor();
+//
+//		for (int i = 0; i < bins.length; i++) {
+//			int green = (int) (510 / 5 * bins[i]);
+//			int red = 0;
+//			if (green > 255) {
+//				green = 0;
+//				red = green - 255;
+//			}
+//			if (green == 0) {
+//				red = 255; 
+//			}
+//
+//			g.setColor(new Color(red, green, 30));
+//
+//			g.fillRect((SIZE * i) + x - SIZE / 2, y - SIZE / 2, SIZE, SIZE);
+//		}
+//		g.setColor(c);
+//	}
 	
-	private void drawVisitCountStorageSegmented(VisitCountStorageSegmented s, Graphics2D g,
-			int x, int y) {
-
-		int SIZE = 6;
-		Color c = g.getColor();
-		if (radar.getLockedEnemy() == null)
-			return;
-					
-		List<BitSet> nearest = s.getNearest(Utils.getSnapshot(this, radar.getLockedEnemy()));
-		Map<BitSet, double[]> storage = s.getStorage();
-		double[] total = new double[43];
-		int K = Math.min(4, nearest.size());
-		for(int i=0;i<K;i++) {
-			drawVisitCountStorage(storage.get(nearest.get(i)), g, x, y + SIZE*i);
-			for (int j = 0; j < 43; j++) {
-				total[j] += storage.get(nearest.get(i))[j];
-			}
-		}
-		drawVisitCountStorage(total, g, x, y + SIZE * K + 10);
-		
-		
-		
-		
-	}
+//	private void drawVisitCountStorageSegmented(VisitCountStorageSegmented s, Graphics2D g,
+//			int x, int y) {
+//
+//		int SIZE = 6;
+//		Color c = g.getColor();
+//		if (radar.getLockedEnemy() == null)
+//			return;
+//					
+//		List<BitSet> nearest = s.getNearest(Utils.getSnapshot(this, radar.getLockedEnemy()));
+//
+//		int K = Math.min(4, nearest.size());
+//		for(int i=0;i<K;i++) {
+//			drawVisitCountStorage(storage.get(nearest.get(i)), g, x, y + SIZE*i);
+//			for (int j = 0; j < 43; j++) {
+//				total[j] += storage.get(nearest.get(i))[j];
+//			}
+//		}
+//		drawVisitCountStorage(total, g, x, y + SIZE * K + 10);
+//		
+//		
+//		
+//		
+//	}
 
 	private void drawWaveAndMae(GBulletFiredEvent wave, Graphics2D g) {
 		double maeLength = 300;
