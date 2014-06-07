@@ -183,7 +183,7 @@ public class Utils {
 	public static double getDistanceFromWall(Point2D position, Rectangle2D battlefield) {
 		return Math.max(Math.abs(position.getX() - battlefield.getWidth()), Math.abs(position.getY()- battlefield.getHeight()));
 	}
-	
+
 	public static double getMAE(Point2D firingPosition, Point2D targetPosition,
 			double targetHeading, double targetVelocity, double waveVelocity,
 			int cw, AdvancedRobot robot) {
@@ -237,6 +237,13 @@ public class Utils {
 		wave.setMinMAE(Math.min(mae[0], mae[1]));
 		wave.setMaxMAE(Math.max(mae[0], mae[1]));
 		return;
+	}
+	
+	public double gunOffset(Point2D guessPosition,AdvancedRobot robot){
+		
+		double gunOffset = robot.getGunHeadingRadians() - (Math.PI/2 - Math.atan2(guessPosition.getY() - robot.getY(), guessPosition.getX() - robot.getX()));
+		return robocode.util.Utils.normalRelativeAngle(gunOffset);
+
 	}
 	
  }

@@ -65,6 +65,7 @@ public class ScannerRobot extends AdvancedRobot {
 
 	private Move move;
 	private boolean wallSmoothing;
+	private Boolean HoT;
 
 
 
@@ -79,6 +80,7 @@ public class ScannerRobot extends AdvancedRobot {
 		info = new EnemyInfo();
 		radarGoingRight = true;
 		corner = false;
+		HoT = true;
 		checkEnemies();
 		waves = new WaveSurfer(this);
 		storages = new HashMap<String, VisitCountStorage>();
@@ -105,12 +107,13 @@ public class ScannerRobot extends AdvancedRobot {
 	private void doShooting() {
 		PositionFinder p = new PositionFinder(enemies, this);
 		en = p.findNearest();
-
-		/* Perform head on target for gun movement */
-		double turnGunAmt = (getHeadingRadians() + en.getBearingRadians() - getGunHeadingRadians());
-		turnGunAmt = Utils.normalRelativeAngle(turnGunAmt);
-		setTurnGunRightRadians(turnGunAmt);
-
+		
+		if (HoT) {
+			/* Perform head on target for gun movement */
+			double turnGunAmt = (getHeadingRadians() + en.getBearingRadians() - getGunHeadingRadians());
+			turnGunAmt = Utils.normalRelativeAngle(turnGunAmt);
+			setTurnGunRightRadians(turnGunAmt);
+		}
 
 		if (getGunHeat() == 0) {
 			double firePower = 3.0;
@@ -328,6 +331,11 @@ public class ScannerRobot extends AdvancedRobot {
 			meleeRadar = true;
 		else
 			meleeRadar = false;
+
+		if (getOthers() <= 4)
+			HoT = false;
+		else 
+			HoT = true;
 	}
 
 	@Override
