@@ -17,5 +17,6 @@ public class Costants {
 	public static double SURFING_MAX_POINTS_DIST = 160;
 	public static double SURFING_MAX_DISTANE_HITTED_WAVE = 50;
 	public static double TIME_THRESHOLD = 5;
+	public static double RADAR_STICK_LENGTH = 140.0;
 	
 }

@@ -12,6 +12,7 @@ import java.util.Hashtable;
 import java.util.Map;
 
 
+
 import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.Projection.tickProjection;
@@ -22,6 +23,11 @@ import org.pattern.radar.GBulletFiredEvent;
 import org.pattern.radar.UpdatedEnemiesListEvent;
 import org.pattern.utils.Costants;
 
+
+import org.pattern.movement.WaveSurfer;
+import org.pattern.radar.GBulletFiredEvent;
+import org.pattern.radar.UpdatedEnemiesListEvent;
+import org.pattern.utils.Costants;
 import org.pattern.utils.EnemyInfo;
 import org.pattern.utils.PositionFinder;
 import org.pattern.utils.VisitCountStorage;
@@ -30,6 +36,7 @@ import org.pattern.utils.VisitCountStorage;
 
 
 import robocode.AdvancedRobot;
+
 
 import robocode.HitWallEvent;
 
@@ -53,10 +60,12 @@ public class ScannerRobot extends AdvancedRobot {
 	private Hashtable<String, Enemy> enemies;
 	public Map<String, VisitCountStorage> storages;
 	private Boolean meleeRadar;
+	
+	public WaveSurfer waves;
 
 	private Move move;
 	private boolean wallSmoothing;
-	public WaveSurfer waves;
+
 
 
 	@Override
@@ -73,10 +82,11 @@ public class ScannerRobot extends AdvancedRobot {
 		checkEnemies();
 		waves = new WaveSurfer(this);
 		storages = new HashMap<String, VisitCountStorage>();
-		
+
 		move=new Move(this);
 		move.ahead=1;
 		wallSmoothing=false;
+
 		
 		nextPosition=null;
 
@@ -325,7 +335,6 @@ public class ScannerRobot extends AdvancedRobot {
 		
 		info = new EnemyInfo(en, getTime());
 		Enemy enemy = enemies.get(event.getName());
-		
 
 		if (enemy == null) {	
 			enemy = new Enemy(event, this);	
@@ -349,6 +358,7 @@ public class ScannerRobot extends AdvancedRobot {
 
 		}
 		
+
 		enemy.updateEnemy(event, this);
 		enemies.put(enemy.getName(), enemy);
 		
@@ -357,7 +367,7 @@ public class ScannerRobot extends AdvancedRobot {
 			setTurnRadarRight(Utils.normalRelativeAngleDegrees(radarTurn));
 		}
 
-		doShooting();
+		doShooting(); 
 	}
 
 	@Override
@@ -367,10 +377,12 @@ public class ScannerRobot extends AdvancedRobot {
 			g.drawLine((int)getX(), (int)getY(), (int)nextRadarPoint.getX(), (int)nextRadarPoint.getY());
 		g.fillRect((int) nextPosition.getX(), (int) nextPosition.getY(), 10, 10);
 
+
 		double heading=move.ahead == 1 ? getHeading() : getHeading()+180;
 		double endX = getX()+Math.sin(Math.toRadians(heading))*WallSmoothing.STICK_LENGTH;
 		double endY = getY()+Math.cos(Math.toRadians(heading))*WallSmoothing.STICK_LENGTH;
 		g.drawLine((int) getX(), (int) getY(), (int)endX, (int)endY);
+
 
 		boolean drawWave = true;
 		if (drawWave) {
