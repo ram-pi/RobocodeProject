@@ -2,12 +2,14 @@ package org.pattern.utils;
 
 import java.awt.geom.Point2D;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Random;
 
 import org.pattern.movement.Projection;
 import org.pattern.movement.WaveSurfer;
 import org.pattern.radar.GBulletFiredEvent;
 import org.robot.Enemy;
+import org.robot.Rocky;
 import org.robot.ScannerRobot;
 
 import robocode.AdvancedRobot;
@@ -66,12 +68,19 @@ public class PositionFinder {
 		if (isOnTheSameRect(p))
 			eval += eval*0.2;
 		
-		for (GBulletFiredEvent wave : ((ScannerRobot)robot).waves.getWaves()) {
+		List<GBulletFiredEvent> waves = null;
+		if (robot instanceof ScannerRobot) {
+			waves = ((ScannerRobot)robot).waves.getWaves();
+		}
+		else if (robot instanceof Rocky) {
+			waves = ((Rocky)robot).m_waves.getWaves();
+		}
+		for (GBulletFiredEvent wave : waves) {
 			double firingOffset = org.pattern.utils.Utils.firingOffset(wave.getFiringPosition(),
 					wave.getTargetPosition(), p);
 			double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
 					: -firingOffset / wave.getMinMAE();
-			eval += ((ScannerRobot)robot).storages.get(wave.getFiringRobot().getName()).getVisits(gf);
+//			eval += ((ScannerRobot)robot).storages.get(wave.getFiringRobot().getName()).getVisits(gf);
 		}
 		return eval;
 	}
