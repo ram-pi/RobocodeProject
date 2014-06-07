@@ -13,7 +13,6 @@ import org.robot.Enemy;
 
 import robocode.AdvancedRobot;
 import robocode.Robocode;
-import robocode.util.Utils;
 
 
 public class Utils {
