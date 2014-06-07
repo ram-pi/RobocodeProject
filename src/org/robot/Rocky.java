@@ -66,7 +66,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 	boolean o_orbitSurfing = true;
 	
 	// on paint ovo
-	private List<Shape> o_toDraw;
+	public List<Shape> o_toDraw;
 	private int o_ahead;
 	private double o_maxDistance;
 	private PositionFinder positionFinder;
@@ -393,34 +393,34 @@ public class Rocky extends AdvancedRobot implements Observer{
 		
 		boolean meele = getOthers() > 1;
 		if (meele) {
-		Enemy enemy = m_enemies.get(event.getName());
+			Enemy enemy = m_enemies.get(event.getName());
 
-		if (enemy == null) {	
-			enemy = new Enemy(event, this);	
-			m_enemies.put(enemy.getName(), enemy);
-			m_storages.put(enemy.getName(), new VisitCountStorage());
-		}
-		
-		if (getTime() - enemy.getLastUpdated() < Costants.TIME_THRESHOLD && 
-				(enemy.getEnergy() - event.getEnergy()) > 0. &&
-				(enemy.getEnergy() - event.getEnergy()) < 3.1) {
+			if (enemy == null) {	
+				enemy = new Enemy(event, this);	
+				m_enemies.put(enemy.getName(), enemy);
+				m_storages.put(enemy.getName(), new VisitCountStorage());
+			}
 			
-				GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
-				gBulletFiredEvent.setFiringRobot(enemy);
-				gBulletFiredEvent.setEnergy(enemy.getEnergy() - event.getEnergy());
-				gBulletFiredEvent.setVelocity(20 - 3 * (enemy.getEnergy() - event.getEnergy()));
-				gBulletFiredEvent.setFiringTime(getTime()-1);
-				gBulletFiredEvent.setFiringPosition(enemy.getPosition());//TODO this or the updated one?
-				gBulletFiredEvent.setTargetPosition(new Point2D.Double(getX(), getY()));
-				org.pattern.utils.Utils.setWaveMAE(gBulletFiredEvent, getHeading(), getVelocity(), this);
-				m_waves.addWave(gBulletFiredEvent);
-
-		}
+			if (getTime() - enemy.getLastUpdated() < Costants.TIME_THRESHOLD && 
+					(enemy.getEnergy() - event.getEnergy()) > 0. &&
+					(enemy.getEnergy() - event.getEnergy()) < 3.1) {
+				
+					GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
+					gBulletFiredEvent.setFiringRobot(enemy);
+					gBulletFiredEvent.setEnergy(enemy.getEnergy() - event.getEnergy());
+					gBulletFiredEvent.setVelocity(20 - 3 * (enemy.getEnergy() - event.getEnergy()));
+					gBulletFiredEvent.setFiringTime(getTime()-1);
+					gBulletFiredEvent.setFiringPosition(enemy.getPosition());//TODO this or the updated one?
+					gBulletFiredEvent.setTargetPosition(new Point2D.Double(getX(), getY()));
+					org.pattern.utils.Utils.setWaveMAE(gBulletFiredEvent, getHeading(), getVelocity(), this);
+					m_waves.addWave(gBulletFiredEvent);
+	
+			}
 		
 
-		enemy.updateEnemy(event, this);
-		m_enemies.put(enemy.getName(), enemy);
-		
+			enemy.updateEnemy(event, this);
+			m_enemies.put(enemy.getName(), enemy);
+			
 		//doShooting(); 
 		} else {
 			o_radar.consumeScannedRobotEvent(event);
@@ -545,13 +545,19 @@ public class Rocky extends AdvancedRobot implements Observer{
 		
 		if (m_nextPosition != null) {
 			if(m_nextPosition.distance(actualPosition) < org.pattern.utils.Costants.POINT_MIN_DIST_NEXT_POINT){
-				//PositionFinder p = new PositionFinder(m_enemies, this);
-				m_nextPosition = positionFinder.findBestPointInRangeWithRandomOffset(200);
+
+				PositionFinder p = new PositionFinder(m_enemies, this);
+				m_nextPosition = p.findBestPointInRangeWithRandomOffset(200);
+				
+				//debug 
+				for (GBulletFiredEvent wave : m_waves.getWaves()) {
+					p.riskFromWaveDebug(wave, m_nextPosition);
+				}
+
 			}
 			double absBearing = org.pattern.utils.Utils.absBearing(actualPosition, m_nextPosition);
 			m.move(absBearing, getHeading());
 		
-
 			setTurnRight(m.turnRight);
 			if (getTurnRemaining() > 0.001) {
 				setAhead(0);
@@ -698,6 +704,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 		out.println("surfing at gf "+org.pattern.utils.Utils.getProjectedGF(this, wave, toGo));
 		return toGo;
 	}
+	
 	private void o_updateFiredBullets() {
 		Enemy e = o_radar.getLockedEnemy();
 		List<GBulletFiredEvent> toRemove = new LinkedList<>();
@@ -882,16 +889,17 @@ public class Rocky extends AdvancedRobot implements Observer{
 			}
 
 
-			g.setColor(Color.BLUE);
-			for (Shape s : o_toDraw) {
-				g.draw(s);
-			}
 
-
-			g.setColor(c);
-
-			o_toDraw.clear();
 		}
+		
+		Color c = g.getColor();
+		g.setColor(Color.BLUE);
+		for (Shape s : o_toDraw) {
+			g.draw(s);
+		}
+		g.setColor(c);
+
+		o_toDraw.clear();
 
 		
 	}

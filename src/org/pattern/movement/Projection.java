@@ -114,10 +114,18 @@ public class Projection {
 		this.projections = projections;
 	}
 
-	private static double MAX_VELOCITY = 8.0;
+	private double maxVelocity = 8.0;
 
 
 	
+	public double getMaxVelocity() {
+		return maxVelocity;
+	}
+
+	public void setMaxVelocity(double maxVelocity) {
+		this.maxVelocity = maxVelocity;
+	}
+
 	private double getNewVelocity(double velocity, double distance) {
 		if (distance < 0) {
 			// If the distance is negative, then change it to be positive
@@ -128,9 +136,9 @@ public class Projection {
 		final double goalVel;
 
 		if (distance == Double.POSITIVE_INFINITY) {
-			goalVel = MAX_VELOCITY;
+			goalVel = maxVelocity;
 		} else {
-			goalVel = Math.min(getMaxVelocity(distance), MAX_VELOCITY);
+			goalVel = Math.min(getMaxVelocity(distance), maxVelocity);
 		}
 
 		if (velocity >= 0) {
@@ -275,7 +283,7 @@ public class Projection {
 		//updating position
 		double hRad = Math.toRadians(h);
 		position = new Point2D.Double(lastProjection.getPosition().getX() + (v * Math.cos(Math.PI/2 - hRad)), lastProjection.getPosition().getY() + (v *Math.sin(Math.PI/2 - hRad)));
-		distanceRemaining -= Math.abs(v);
+		distanceRemaining -= v;
 		//todo check collision
 		
 		projection.setHeading(h);

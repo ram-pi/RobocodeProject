@@ -1,14 +1,17 @@
 package org.pattern.utils;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
 
+import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.WaveSurfer;
+import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
 import org.robot.Enemy;
 import org.robot.Rocky;
@@ -84,13 +87,62 @@ public class PositionFinder {
 			waves = ((Rocky)robot).m_waves.getWaves();
 		}
 		for (GBulletFiredEvent wave : waves) {
-			double firingOffset = org.pattern.utils.Utils.firingOffset(wave.getFiringPosition(),
-					wave.getTargetPosition(), p);
-			double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
-					: -firingOffset / wave.getMinMAE();
-//			eval += ((ScannerRobot)robot).storages.get(wave.getFiringRobot().getName()).getVisits(gf);
+			eval += riskFromWave(wave, p);
 		}
 		return eval;
+	}
+	
+	private double riskFromWave(GBulletFiredEvent wave, Point2D point) {
+		Point2D myPosition = new Point2D.Double(robot.getX(), robot.getY());
+		
+		Move m = new Move(robot);
+		double absBearing = org.pattern.utils.Utils.absBearing(myPosition, point);
+		m.move(absBearing, robot.getHeading());
+		
+		Projection turning = new Projection(myPosition, robot.getHeading(), robot.getVelocity(), 0, m.turnRight, 0);
+		turning.setMaxVelocity(0);
+		tickProjection tick = turning.projectNextTick();
+		int elapsedTime = 0;
+		boolean hitted = false;
+		
+		while (Math.abs(tick.getHeading() - turning.getWantedHeading()) > 0.001) {
+			if (wave.getFiringPosition().distance(tick.getPosition()) < wave.getVelocity() * elapsedTime) {
+				hitted = true;
+				break;
+			}
+			tick = turning.projectNextTick();
+			elapsedTime++;
+		}
+		
+		Projection going = new Projection(tick.getPosition(), tick.getHeading(), tick.getVelocity(), m.ahead, 0, m.ahead*point.distance(tick.getPosition()));
+		tick = going.projectNextTick();
+		
+		while (!hitted && wave.getFiringPosition().distance(tick.getPosition()) > wave.getVelocity() * elapsedTime) {
+			tick = going.projectNextTick();
+			elapsedTime++;
+		}
+	
+	
+		double firingOffset = org.pattern.utils.Utils.firingOffset(wave.getFiringPosition(),
+				wave.getTargetPosition(), tick.getPosition());
+		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
+				: -firingOffset / wave.getMinMAE();
+		
+//		//debug
+//		List<Rectangle2D> toDraw = new LinkedList<>();
+//		for (tickProjection t : turning.getProjections()) {
+//			Rectangle2D r = new Rectangle2D.Double((int)t.getPosition().getX()-3, (int)t.getPosition().getY()-3, 6, 6);
+//			toDraw.add(r);
+//		}
+//		
+//		for (tickProjection t : going.getProjections()) {
+//			Rectangle2D r = new Rectangle2D.Double((int)t.getPosition().getX()-3, (int)t.getPosition().getY()-3, 6, 6);
+//			toDraw.add(r);
+//		}
+//		
+//		((Rocky)robot).o_toDraw.addAll(toDraw);
+		
+		return ((Rocky)robot).m_storages.get(wave.getFiringRobot().getName()).getVisits(gf);
 	}
 	
 	private Double minimumDistanceFromFrame(java.awt.geom.Point2D.Double p) {
@@ -253,6 +305,60 @@ public class PositionFinder {
 	public void setBattlefield(Double w, Double h) {
 		this.w = w;
 		this.h = h;
+	}
+	
+	public double riskFromWaveDebug(GBulletFiredEvent wave, Point2D point) {
+		Point2D myPosition = new Point2D.Double(robot.getX(), robot.getY());
+		
+		Move m = new Move(robot);
+		double absBearing = org.pattern.utils.Utils.absBearing(myPosition, point);
+		m.move(absBearing, robot.getHeading());
+		
+		Projection turning = new Projection(myPosition, robot.getHeading(), robot.getVelocity(), m.ahead, m.turnRight, 0);
+		turning.setMaxVelocity(0);
+		tickProjection tick = turning.projectNextTick();
+		int elapsedTime = (int)(robot.getTime() - wave.getFiringTime());
+		boolean hitted = false;
+		
+		while (Math.abs(tick.getHeading() - turning.getWantedHeading()) > 0.001) {
+			if (wave.getFiringPosition().distance(tick.getPosition()) < wave.getVelocity() * elapsedTime) {
+				hitted = true;
+				break;
+			}
+			tick = turning.projectNextTick();
+			elapsedTime++;
+		}
+		
+		m.move(absBearing, tick.getHeading());
+		Projection going = new Projection(tick.getPosition(), tick.getHeading(), tick.getVelocity(), m.ahead, 0, m.ahead*point.distance(tick.getPosition()));
+		tick = going.projectNextTick();
+		
+		while (!hitted && wave.getFiringPosition().distance(tick.getPosition()) > wave.getVelocity() * elapsedTime) {
+			tick = going.projectNextTick();
+			elapsedTime++;
+		}
+	
+	
+		double firingOffset = org.pattern.utils.Utils.firingOffset(wave.getFiringPosition(),
+				wave.getTargetPosition(), tick.getPosition());
+		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
+				: -firingOffset / wave.getMinMAE();
+		
+//		//debug
+		List<Rectangle2D> toDraw = new LinkedList<>();
+		for (tickProjection t : turning.getProjections()) {
+			Rectangle2D r = new Rectangle2D.Double((int)t.getPosition().getX()-3, (int)t.getPosition().getY()-3, 6, 6);
+			toDraw.add(r);
+		}
+		
+		for (tickProjection t : going.getProjections()) {
+			Rectangle2D r = new Rectangle2D.Double((int)t.getPosition().getX()-3, (int)t.getPosition().getY()-3, 6, 6);
+			toDraw.add(r);
+		}
+		
+		((Rocky)robot).o_toDraw.addAll(toDraw);
+		
+		return ((Rocky)robot).m_storages.get(wave.getFiringRobot().getName()).getVisits(gf);
 	}
 	
 }
