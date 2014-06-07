@@ -23,6 +23,7 @@ public class PositionFinder {
 	private Double w;
 	private Double h;
 	private Double maxDistance;
+	private Point2D lastPosition, lastLastPosition;
 	
 	public PositionFinder(Hashtable<String, Enemy> enemies, AdvancedRobot robot) {
 		this.enemies = enemies;
@@ -30,6 +31,7 @@ public class PositionFinder {
 		this.w = robot.getBattleFieldWidth();
 		this.h  = robot.getBattleFieldHeight();
 		this.maxDistance = new Point2D.Double(0, 0).distance(new Point2D.Double(w, h));
+		this.lastPosition = this.lastLastPosition = new Point2D.Double(robot.getX(), robot.getY());
 	}
 	
 	public PositionFinder() {}
@@ -69,6 +71,8 @@ public class PositionFinder {
 		
 		//eval += minimumDistanceFromCorner(p);
 		eval += minimumDistanceFromFrame(p)/maxDistance;
+		eval += 1/p.distance(lastPosition);
+//		eval += 1/p.distance(lastLastPosition);
 		if (isOnTheSameRect(p))
 			eval += eval*1.2;
 		
@@ -133,6 +137,9 @@ public class PositionFinder {
 				ret = tmp;
 			}
 		}
+		
+		lastLastPosition = lastPosition;
+		lastPosition = ret;
 		return ret;
 	}
 	
@@ -150,6 +157,8 @@ public class PositionFinder {
 				ret = tmp;
 			}
 		}
+		lastLastPosition = lastPosition;
+		lastPosition = new Point2D.Double(robot.getX(), robot.getY());
 		return ret;
 	}
 	
@@ -174,6 +183,8 @@ public class PositionFinder {
 				ret = tmp;
 			}
 		}
+		lastLastPosition = lastPosition;
+		lastPosition = new Point2D.Double(robot.getX(), robot.getY());
 		return ret;
 	}
 	
@@ -188,7 +199,7 @@ public class PositionFinder {
 	}
 
 	public Enemy findNearest() {
-		if (enemies == null)
+		if (enemies.isEmpty())
 			return null;
 		
 		Enemy ret = new Enemy();
@@ -233,6 +244,10 @@ public class PositionFinder {
 
 	public void setRobot(AdvancedRobot robot) {
 		this.robot = robot;
+		this.w = robot.getBattleFieldWidth();
+		this.h  = robot.getBattleFieldHeight();
+		this.maxDistance = new Point2D.Double(0, 0).distance(new Point2D.Double(w, h));
+		this.lastPosition = this.lastLastPosition = new Point2D.Double(robot.getX(), robot.getY());
 	}
 	
 	public void setBattlefield(Double w, Double h) {

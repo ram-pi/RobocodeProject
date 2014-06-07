@@ -69,7 +69,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 	private List<Shape> o_toDraw;
 	private int o_ahead;
 	private double o_maxDistance;
-
+	private PositionFinder positionFinder;
 
 	public Rocky() {
 		//meele
@@ -93,10 +93,14 @@ public class Rocky extends AdvancedRobot implements Observer{
 			o_riskStorage = new VisitCountStorageSegmented();
 		
 		o_toDraw = new LinkedList<>();
+		
+		positionFinder = new PositionFinder();
 	}
 	@Override
 	public void run() {
 		boolean meele = getOthers() > 1;
+		setColors(Color.green, Color.yellow, Color.red);
+		setBulletColor(Color.red);
 		setAdjustRadarForRobotTurn(true);
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForRobotTurn(true);
@@ -496,8 +500,12 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 	
 	private void doMeeleShooting() {
-		PositionFinder p = new PositionFinder(m_enemies, this);
-		m_en = p.findNearest();
+		//PositionFinder p = new PositionFinder(m_enemies, this);
+		positionFinder.setEnemies(m_enemies);
+		positionFinder.setRobot(this);
+		m_en = positionFinder.findNearest();
+		if (m_en == null)
+			return;
 
 		/* Perform head on target for gun movement */
 		double turnGunAmt = (getHeadingRadians() + m_en.getBearingRadians() - getGunHeadingRadians());
@@ -537,8 +545,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 		
 		if (m_nextPosition != null) {
 			if(m_nextPosition.distance(actualPosition) < org.pattern.utils.Costants.POINT_MIN_DIST_NEXT_POINT){
-				PositionFinder p = new PositionFinder(m_enemies, this);
-				m_nextPosition = p.findBestPointInRangeWithRandomOffset(200);
+				//PositionFinder p = new PositionFinder(m_enemies, this);
+				m_nextPosition = positionFinder.findBestPointInRangeWithRandomOffset(200);
 			}
 			double absBearing = org.pattern.utils.Utils.absBearing(actualPosition, m_nextPosition);
 			m.move(absBearing, getHeading());
