@@ -533,50 +533,71 @@ public class Rocky extends AdvancedRobot implements Observer{
 	private void m_gotoPointandSmooth() {
 
 		Point2D actualPosition = new Point2D.Double(getX(), getY());
+		Move m = new Move(this);
 		
-		Projection proj = new Projection(new Point2D.Double(getX(), getY()),
-				getHeading(), getVelocity(), m_move.ahead, getTurnRemaining()+m_move.turnRight);
-		tickProjection t = proj.projectNextTick();
-
-		/* Movement Settings, find the next position */
-		double distanceToNewPosition = actualPosition.distance(m_nextPosition);
-		if (m_move.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m_move.ahead)) {
-			//out.println("smooth");
-			m_wallSmoothing=true;
-			double _turnRight=m_move.turnRight;
-			int _ahead=100*m_move.ahead;
-
-			setAhead(_ahead);
-			setTurnRight(_turnRight);
-		}
-		else if (distanceToNewPosition < 15 || m_wallSmoothing==true) {
-			m_wallSmoothing=false;
-			PositionFinder p = new PositionFinder(m_enemies, this);
-			//Point2D.Double testPoint = p.findBestPoint(200);
-			//double range = distanceToTarget*0.5;
-			//Point2D.Double testPoint = p.findBestPointInRange(attempt, range);
-			Point2D.Double testPoint =  p.findBestPointInRangeWithRandomOffset(200);
-			m_nextPosition = testPoint;
-			//out.println("point");
-		}
-
-		/* Movement to nextPosition */
-		else {
-			Double angle = org.pattern.utils.Utils.calcAngle(m_nextPosition, actualPosition) - getHeadingRadians();
-			Double direction = 1.0;
-
-			if (Math.cos(angle) < 0) {
-				angle += Math.PI;
-				direction = -1.0;
+		if (m_nextPosition != null) {
+			if(m_nextPosition.distance(actualPosition) < org.pattern.utils.Costants.POINT_MIN_DIST_NEXT_POINT){
+				PositionFinder p = new PositionFinder(m_enemies, this);
+				m_nextPosition = p.findBestPointInRangeWithRandomOffset(200);
 			}
-			if(direction>0)
-				m_move.ahead = 1;
-			else
-				m_move.ahead=-1;
-			setAhead(distanceToNewPosition*direction);
-			angle = Utils.normalRelativeAngle(angle);
-			setTurnRightRadians(angle);
+			double absBearing = org.pattern.utils.Utils.absBearing(actualPosition, m_nextPosition);
+			m.move(absBearing, getHeading());
+		
+
+			setTurnRight(m.turnRight);
+			if (getTurnRemaining() > 0.001) {
+				setAhead(0);
+			} else {
+				setMaxVelocity(8.);
+			}
+			setAhead(m_nextPosition.distance(actualPosition)*m.ahead);
+		
+			return;
 		}
+		
+//		Projection proj = new Projection(new Point2D.Double(getX(), getY()),
+//				getHeading(), getVelocity(), m_move.ahead, getTurnRemaining()+m_move.turnRight);
+//		tickProjection t = proj.projectNextTick();
+//
+//		/* Movement Settings, find the next position */
+//		double distanceToNewPosition = actualPosition.distance(m_nextPosition);
+//		if (m_move.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m_move.ahead)) {
+//			//out.println("smooth");
+//			m_wallSmoothing=true;
+//			double _turnRight=m_move.turnRight;
+//			int _ahead=100*m_move.ahead;
+//
+//			setAhead(_ahead);
+//			setTurnRight(_turnRight);
+//		}
+//		else if (distanceToNewPosition < 15 || m_wallSmoothing==true) {
+//			m_wallSmoothing=false;
+//			PositionFinder p = new PositionFinder(m_enemies, this);
+//			//Point2D.Double testPoint = p.findBestPoint(200);
+//			//double range = distanceToTarget*0.5;
+//			//Point2D.Double testPoint = p.findBestPointInRange(attempt, range);
+//			Point2D.Double testPoint =  p.findBestPointInRangeWithRandomOffset(200);
+//			m_nextPosition = testPoint;
+//			//out.println("point");
+//		}
+//
+//		/* Movement to nextPosition */
+//		else {
+//			Double angle = org.pattern.utils.Utils.calcAngle(m_nextPosition, actualPosition) - getHeadingRadians();
+//			Double direction = 1.0;
+//
+//			if (Math.cos(angle) < 0) {
+//				angle += Math.PI;
+//				direction = -1.0;
+//			}
+//			if(direction>0)
+//				m_move.ahead = 1;
+//			else
+//				m_move.ahead=-1;
+//			setAhead(distanceToNewPosition*direction);
+//			angle = Utils.normalRelativeAngle(angle);
+//			setTurnRightRadians(angle);
+//		}
 	}
 	
 	private double o_orbitSurfing(GBulletFiredEvent wave, Enemy e) {

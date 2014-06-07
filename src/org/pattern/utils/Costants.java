@@ -8,7 +8,7 @@ public class Costants {
 	public static int NUM_BINS = 43;
 	public static int SMOOTH_BINS = 4;
 	public static int POINT_MIN_DIST_ENEMY = 40;
-	public static int POINT_MIN_DIST_NEXT_POINT = 40;
+	public static int POINT_MIN_DIST_NEXT_POINT = 2;
 	public static int GF_DIST_REMOVE_BULLET = -50;
 	public static int GF_DIST_BULLET_HIT = 30;
 	public static int FIREPOWER_ENERGY_TRESHOLD = 15;
