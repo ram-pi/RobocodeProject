@@ -549,8 +549,9 @@ public class Rocky extends AdvancedRobot implements Observer{
 				setAhead(0);
 			} else {
 				setMaxVelocity(8.);
+				setAhead(m_nextPosition.distance(actualPosition)*m.ahead);
 			}
-			setAhead(m_nextPosition.distance(actualPosition)*m.ahead);
+			
 		
 			return;
 		}
