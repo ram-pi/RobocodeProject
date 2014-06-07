@@ -155,9 +155,9 @@ public class PositionFinder {
 	
 
 	private boolean inBattlefield(java.awt.geom.Point2D.Double tmp) {
-		if (tmp.getX() < 30 || tmp.getX() > robot.getBattleFieldWidth()-30)
+		if (tmp.getX() < 50 || tmp.getX() > robot.getBattleFieldWidth()-50)
 			return false;
-		if (tmp.getY() < 30 || tmp.getY() > robot.getBattleFieldHeight()-30)
+		if (tmp.getY() < 50 || tmp.getY() > robot.getBattleFieldHeight()-50)
 			return false;
 		return true;
 	}
