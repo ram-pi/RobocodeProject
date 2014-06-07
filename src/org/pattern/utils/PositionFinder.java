@@ -5,8 +5,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Random;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
-
 import org.pattern.movement.Projection;
 import org.pattern.movement.WaveSurfer;
 import org.pattern.radar.GBulletFiredEvent;
