@@ -35,6 +35,7 @@ import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
 import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
+import robocode.WinEvent;
 import robocode.util.Utils;
 
 public class Rocky extends AdvancedRobot implements Observer{
@@ -947,5 +948,9 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 	}
 
+	@Override
+	public void onWin(WinEvent event) {
+		setColors(Color.black, Color.black, Color.black);
+	}
 
 }
