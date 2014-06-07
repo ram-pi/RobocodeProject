@@ -16,7 +16,6 @@ import org.robot.Enemy;
 import com.sun.org.apache.bcel.internal.Constants;
 
 import robocode.AdvancedRobot;
-import robocode.Robocode;
 
 
 public class Utils {
@@ -362,11 +361,17 @@ public class Utils {
 		return;
 	}
 	
-	public double gunOffset(Point2D guessPosition,AdvancedRobot robot){
+	public static double gunOffset(Point2D guessPosition,AdvancedRobot robot){
 		
 		double gunOffset = robot.getGunHeadingRadians() - (Math.PI/2 - Math.atan2(guessPosition.getY() - robot.getY(), guessPosition.getX() - robot.getX()));
 		return robocode.util.Utils.normalRelativeAngle(gunOffset);
 
+	}
+	
+	public static Point2D getFuturePoint(Enemy e, long when) {
+		double x = e.getX() + Math.sin(e.getHeadingRadians())*e.getVelocity()*when;
+		double y = e.getY() + Math.cos(e.getHeadingRadians())*e.getVelocity()*when;
+		return new Point2D.Double(x, y);
 	}
 	
  }

@@ -8,6 +8,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.util.HashMap;
+import java.awt.geom.Rectangle2D;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -66,6 +67,7 @@ public class ScannerRobot extends AdvancedRobot {
 	private Move move;
 	private boolean wallSmoothing;
 	private Boolean HoT;
+	private Point2D aimingPoint;
 
 
 
@@ -107,12 +109,25 @@ public class ScannerRobot extends AdvancedRobot {
 	private void doShooting() {
 		PositionFinder p = new PositionFinder(enemies, this);
 		en = p.findNearest();
+		Point2D myPos = new Point2D.Double(getX(), getY());
 		
 		if (HoT) {
 			/* Perform head on target for gun movement */
+			aimingPoint = new Point2D.Double(en.getX(), en.getY());
 			double turnGunAmt = (getHeadingRadians() + en.getBearingRadians() - getGunHeadingRadians());
 			turnGunAmt = Utils.normalRelativeAngle(turnGunAmt);
 			setTurnGunRightRadians(turnGunAmt);
+		} else {
+			/* Perform circular targeting */
+			Rectangle2D battlefield = new Rectangle2D.Double(0, 0, getBattleFieldWidth(), getBattleFieldHeight());
+			long when = calcTimeToReachEnemy();
+			aimingPoint = org.pattern.utils.Utils.getFuturePoint(en, when);
+			if (!battlefield.contains(aimingPoint)) {
+				HoT = true;
+				return;
+			}
+			double theta = Utils.normalAbsoluteAngle(Math.atan2(aimingPoint.getX() - getX(), aimingPoint.getY() - getY()));
+			setTurnGunRightRadians(Utils.normalRelativeAngle(theta - getGunHeadingRadians()));
 		}
 
 		if (getGunHeat() == 0) {
@@ -172,6 +187,12 @@ public class ScannerRobot extends AdvancedRobot {
 	}
 	
 	
+
+	private long calcTimeToReachEnemy() {
+		double firepower = 3.0;
+		double bulletSpeed = 20 - firepower*3;
+		return (long) (en.getDistance()/bulletSpeed);
+	}
 
 	private void doMovement() {
 		Point2D actualPosition = new Point2D.Double(getX(), getY());
@@ -331,7 +352,7 @@ public class ScannerRobot extends AdvancedRobot {
 			meleeRadar = true;
 		else
 			meleeRadar = false;
-
+		
 		if (getOthers() <= 4)
 			HoT = false;
 		else 
@@ -438,6 +459,10 @@ public class ScannerRobot extends AdvancedRobot {
 	private void drawPoint(Point2D point, int size, Graphics2D g) {
 		g.fillRect((int) (point.getX() - size / 2),
 				(int) (point.getY() - size / 2), size, size);
-
+		
+		if (aimingPoint != null) {
+			g.setColor(Color.white);
+			g.fillRect((int) aimingPoint.getX(), (int) aimingPoint.getY(), 10, 10);
+		}
 	}
 }
