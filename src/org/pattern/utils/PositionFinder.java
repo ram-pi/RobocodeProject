@@ -5,6 +5,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Random;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
+
 import org.pattern.movement.Projection;
 import org.pattern.movement.WaveSurfer;
 import org.pattern.radar.GBulletFiredEvent;
@@ -20,12 +22,14 @@ public class PositionFinder {
 	private AdvancedRobot robot;
 	private Double w;
 	private Double h;
+	private Double maxDistance;
 	
 	public PositionFinder(Hashtable<String, Enemy> enemies, AdvancedRobot robot) {
 		this.enemies = enemies;
 		this.robot = robot;
 		this.w = robot.getBattleFieldWidth();
 		this.h  = robot.getBattleFieldHeight();
+		this.maxDistance = new Point2D.Double(0, 0).distance(new Point2D.Double(w, h));
 	}
 	
 	public PositionFinder() {}
@@ -64,9 +68,9 @@ public class PositionFinder {
 		}
 		
 		//eval += minimumDistanceFromCorner(p);
-		eval += minimumDistanceFromFrame(p);
+		eval += minimumDistanceFromFrame(p)/maxDistance;
 		if (isOnTheSameRect(p))
-			eval += eval*0.2;
+			eval += eval*1.2;
 		
 		List<GBulletFiredEvent> waves = null;
 		if (robot instanceof ScannerRobot) {
@@ -158,7 +162,8 @@ public class PositionFinder {
 		Double minimumRisk = Double.MAX_VALUE;
 		Point2D.Double myPos = new Point2D.Double(robot.getX(), robot.getY());
 		int i = 0;
-		while (i < attempt) {
+		while (i < attempt 
+				&& !enemies.isEmpty()) {
 			i++;
 			Double randomDistance = e.getDistance()*0.8 + Math.random()*100;
 			randomDistance = Math.min(randomDistance, 100);

@@ -23,5 +23,4 @@ public class Costants {
 	public static double SURFING_NUM_POINTS = 200;
 	public static double SURFING_MAX_POINT_DIST = 100;
 	public static final double SURFING_BULLET_HIT_BULLET_DISTANCE = 40;
-
 }
