@@ -2,10 +2,17 @@ package org.robot;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Shape;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
@@ -13,19 +20,24 @@ import org.pattern.movement.WallSmoothing;
 import org.pattern.movement.WaveSurfer;
 import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
+import org.pattern.radar.Radar;
 import org.pattern.utils.Costants;
 import org.pattern.utils.EnemyInfo;
 import org.pattern.utils.PositionFinder;
 import org.pattern.utils.VisitCountStorage;
+import org.pattern.utils.VisitCountStorageSegmented;
+
+import com.sun.org.apache.bcel.internal.Constants;
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitBulletEvent;
 import robocode.HitByBulletEvent;
+import robocode.HitRobotEvent;
 import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 
-public class Rocky extends AdvancedRobot {
+public class Rocky extends AdvancedRobot implements Observer{
 
 	private Boolean m_radarGoingRight;
 	private Point2D m_nextPosition;
@@ -41,6 +53,23 @@ public class Rocky extends AdvancedRobot {
 
 	// on paint meele
 	private Point2D m_nextRadarPoint;
+	
+	
+	private Radar o_radar;
+	private WaveSurfer o_waves;
+	List<GBulletFiredEvent> o_firedBullets;
+	private static VisitCountStorageSegmented o_riskStorage;
+	private static VisitCountStorageSegmented o_gfStorage;
+	
+	Point2D o_toGo = null;
+	boolean o_pointsSurfing = false;
+	boolean o_orbitSurfing = true;
+	
+	// on paint ovo
+	private List<Shape> o_toDraw;
+	private int o_ahead;
+	private double o_maxDistance;
+
 
 	public Rocky() {
 		//meele
@@ -52,6 +81,18 @@ public class Rocky extends AdvancedRobot {
 
 		m_waves = new WaveSurfer(this);
 		m_storages = new HashMap<String, VisitCountStorage>();
+		
+		//OvO
+		o_radar = new Radar(this);
+		o_radar.addObserver(this);
+		o_waves = new WaveSurfer(this);
+		o_firedBullets = new LinkedList<>();
+		if (o_gfStorage == null)
+				o_gfStorage = new VisitCountStorageSegmented();
+		if (o_riskStorage == null)
+			o_riskStorage = new VisitCountStorageSegmented();
+		
+		o_toDraw = new LinkedList<>();
 	}
 	@Override
 	public void run() {
@@ -59,9 +100,13 @@ public class Rocky extends AdvancedRobot {
 		setAdjustRadarForRobotTurn(true);
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForRobotTurn(true);
+		
+		o_maxDistance = Math.sqrt(getBattleFieldWidth() * getBattleFieldWidth()
+				+ getBattleFieldHeight() * getBattleFieldHeight());
+		
 		if (meele) {
 			m_move = new Move(this);
-		}
+		} 
 			
 
 		do {
@@ -71,6 +116,12 @@ public class Rocky extends AdvancedRobot {
 				doMeeleScan();
 				doMeeleMovement();
 				doMeeleShooting();
+			} else {
+				o_waves.removePassedWaves();
+				o_updateFiredBullets();
+				doOvOscan();
+				doOvoMovement();
+				doOvoShotting();
 			}
 			execute();
 
@@ -78,6 +129,78 @@ public class Rocky extends AdvancedRobot {
 
 	}
 
+	private void doOvoShotting() {
+		
+		
+	}
+	private void doOvoMovement() {
+		double _ahead = 0;
+		double _turnRight = 0;
+
+		Point2D myPosition = new Point2D.Double(getX(), getY());
+		GBulletFiredEvent nearestWave = o_waves.getNearestWave();
+		double angle = 0;
+		Move m = new Move(this);
+		if (nearestWave == null && o_radar.getLockedEnemy() != null) {
+			Enemy e = o_radar.getLockedEnemy();
+			angle = org.pattern.utils.Utils
+					.absBearingPerpendicular(new Point2D.Double(getX(),
+							getY()), e.getPosition(), 1);
+			m.move(angle, getHeading());
+			Projection proj = new Projection(
+					new Point2D.Double(getX(), getY()), getHeading(),
+					getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
+			tickProjection t = proj.projectNextTick();
+			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
+		} else if (o_toGo == null && nearestWave != null && o_pointsSurfing ) {
+			o_toGo = o_pointsSurfing(nearestWave);
+		} else if (nearestWave != null && o_orbitSurfing) {
+			Enemy e = o_radar.getLockedEnemy() == null ? nearestWave.getFiringRobot() : o_radar.getLockedEnemy();
+			angle  = o_orbitSurfing(nearestWave, e);
+			m.move(angle, getHeading());
+			m.smooth(myPosition, getHeading(), m.turnRight, m.ahead);
+
+		}
+		
+		if (o_toGo != null && o_pointsSurfing) {
+			double togoAngle = org.pattern.utils.Utils.absBearing(new Point2D.Double(getX(), getY()), o_toGo);
+			m.move(togoAngle, getHeading());
+			Projection proj = new Projection(
+					new Point2D.Double(getX(), getY()), getHeading(),
+					getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
+			tickProjection t = proj.projectNextTick();
+//			if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead)) 
+//				toGo = null;
+			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
+		}
+		
+		boolean drawTogo = false;
+		if (drawTogo && o_toGo != null) {
+			Rectangle2D rect = new Rectangle2D.Double(o_toGo.getX()-2, o_toGo.getY()-2, 4, 4);
+			o_toDraw.add(rect);
+		}
+
+//		m.move(surfAngle, getHeading());
+//		Projection proj = new Projection(
+//				new Point2D.Double(getX(), getY()), getHeading(),
+//				getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
+//		tickProjection t = proj.projectNextTick();
+//
+//		m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
+//				m.ahead);
+//
+		o_ahead = m.ahead;
+		_turnRight = m.turnRight;
+		_ahead = o_ahead * 100;
+
+		setAhead(_ahead);
+		setTurnRight(_turnRight);
+		
+	}
+	private void doOvOscan() {
+		o_radar.doScan();
+		
+	}
 	private void doMeeleScan() {
 
 		Point2D pos = new Point2D.Double(getX(), getY());
@@ -177,8 +300,24 @@ public class Rocky extends AdvancedRobot {
 					wave.getFiringPosition(), wave.getTargetPosition(), myPos);
 			double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
 					: -firingOffset / wave.getMinMAE();
+			if (m_storages.get(event.getName()) != null)
+				m_storages.get(event.getName()).visit(gf);
+		} else {
+			GBulletFiredEvent wave = o_waves.getNearestWave();
+			Point2D myPos = new Point2D.Double(getX(), getY());
 
-			m_storages.get(event.getName()).visit(gf);
+			// TODO we lost a wave
+			if (Math.abs(myPos.distance(wave.getFiringPosition())
+					- (getTime() - wave.getFiringTime()) * wave.getVelocity()) > 50)
+				return;
+
+			double firingOffset = o_firingOffset(wave.getFiringPosition(),
+					wave.getTargetPosition(), myPos);
+			double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
+					: -firingOffset / wave.getMinMAE();
+
+			
+			o_riskStorage.visit(wave.getSnapshot(),gf);
 		}
 
 	}
@@ -214,13 +353,42 @@ public class Rocky extends AdvancedRobot {
 			m_storages.get(event.getBullet().getName()).visit(gf);
 			m_waves.getWaves().remove(hittedWave);
 			return;
+		} else {
+			Point2D bulletPosition = new Point2D.Double(event.getBullet().getX(),
+					event.getBullet().getY());
+
+			GBulletFiredEvent hittedWave = null;
+			for (GBulletFiredEvent wave : o_waves.getWaves()) {
+				if (Math.abs(bulletPosition.distance(wave.getFiringPosition())
+						- ((getTime() - wave.getFiringTime()) * event.getBullet()
+								.getVelocity())) < Costants.SURFING_BULLET_HIT_BULLET_DISTANCE) {
+					hittedWave = wave;
+					break;
+				}
+			}
+
+			if (hittedWave == null)
+				return;
+
+			double firingOffset = o_firingOffset(hittedWave.getFiringPosition(),
+					hittedWave.getTargetPosition(), bulletPosition);
+			double mae = firingOffset > 0 ? hittedWave.getMaxMAE() : hittedWave
+					.getMinMAE();
+			double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset / mae;
+
+
+			o_riskStorage.visit(hittedWave.getSnapshot(), gf);
+
+			o_waves.getWaves().remove(hittedWave);
+			return;
 		}
 	}
 	
 	@Override
 	public void onScannedRobot(ScannedRobotEvent event) {
 		
-		
+		boolean meele = getOthers() > 1;
+		if (meele) {
 		Enemy enemy = m_enemies.get(event.getName());
 
 		if (enemy == null) {	
@@ -250,6 +418,62 @@ public class Rocky extends AdvancedRobot {
 		m_enemies.put(enemy.getName(), enemy);
 		
 		//doShooting(); 
+		} else {
+			o_radar.consumeScannedRobotEvent(event);
+
+			Enemy e = new Enemy(event, this);
+
+			
+			double distance = event.getDistance();
+
+			double firePower = 0;
+			Point2D myPosition = new Point2D.Double(getX(), getY());
+
+			if (getEnergy() < Costants.FIREPOWER_ENERGY_TRESHOLD)
+				firePower = Costants.FIREPOWER_FP_UNDER_TRESHOLD;
+			else
+				firePower = 3 - (distance / o_maxDistance) * 3;
+
+			BitSet snapshot = org.pattern.utils.Utils.getSnapshot(this, e);
+			double angle = org.pattern.utils.Utils.getFiringAngle(o_gfStorage, myPosition, e, firePower, snapshot, this);
+			
+			//In case of no segmentation
+//			               double bestGF = gfStorage.getPeak();
+//			               double mae = 0;
+//			               int cw = 0;
+//			               if (bestGF > 0) {
+//			                       cw = 1;
+//			               } else {
+//			                       cw = -1;
+//		               }
+//			
+//			               mae = Math.abs(getMAE(myPosition, e.getPosition(), e.getHeading(),
+//			                               e.getVelocity(), 20 - firePower * 3, cw));
+//			
+//			              double angle = bestGF * mae;
+		
+			double absBearing = org.pattern.utils.Utils.absBearing(myPosition, e.getPosition());
+			double bearing = absBearing + angle;
+			setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(bearing
+					- getGunHeading()));
+
+			if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < Costants.GUN_MAX_DISPLACEMENT_DEGREE) {
+				GBulletFiredEvent bullet = new GBulletFiredEvent();
+
+				bullet.setEnergy(firePower);
+				bullet.setFiringPosition(myPosition); // TODO take the next tick
+														// position?
+				bullet.setFiringTime(getTime());
+				bullet.setTargetPosition(e.getPosition());
+				bullet.setVelocity(20 - firePower * 3);
+				bullet.setSnapshot(snapshot);
+				o_setWaveMAE(bullet, e.getHeading(), e.getVelocity());
+
+				o_firedBullets.add(bullet);
+
+				setFire(firePower);
+			}
+		}
 	}
 
 	@Override
@@ -261,6 +485,16 @@ public class Rocky extends AdvancedRobot {
 		}
 	}
 
+	@Override
+	public void onHitRobot(HitRobotEvent event) {
+		boolean meele = getOthers() > 1;
+		if (meele)
+			return;
+		
+		o_radar.consumeHitAnotherRobotEvent(event);
+	}
+
+	
 	private void doMeeleShooting() {
 		PositionFinder p = new PositionFinder(m_enemies, this);
 		m_en = p.findNearest();
@@ -344,9 +578,192 @@ public class Rocky extends AdvancedRobot {
 			setTurnRightRadians(angle);
 		}
 	}
+	
+	private double o_orbitSurfing(GBulletFiredEvent wave, Enemy e) {
+		Move m = new Move(this);
+		Point2D myPos = new Point2D.Double(getX(), getY());
+		double angle, ret = 0;
+		double minRisk = Double.MAX_VALUE;
+		
+		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) { 
+			angle = org.pattern.utils.Utils.absBearingPerpendicular(myPos, e.getPosition(), orbitDirection);
+			m.move(angle, getHeading());
+			double risk = o_surfWave(wave, m.turnRight, m.ahead);
+			if (risk < minRisk) {
+				minRisk = risk;
+				ret = angle;
+			}
+		}
+		return ret;
+		
+	}
+	
+	private double o_surfWave(GBulletFiredEvent nearestWave,
+			double bearingOffset, int direction) {
+		Point2D myPosition = new Point2D.Double(getX(), getY());
+
+		Projection projection = new Projection(myPosition, getHeading(),
+				getVelocity(), direction, bearingOffset);
+
+		tickProjection tick = projection.projectNextTick();
+		int timeElapsed = (int) (getTime() - nearestWave.getFiringTime());
+		Move m = new Move(this);
+
+		while (tick.getPosition().distance(nearestWave.getFiringPosition()) > (timeElapsed + tick
+				.getTick()) * nearestWave.getVelocity()) {
+			tick = projection.projectNextTick();
+
+			if (m.smooth(tick.getPosition(), tick.getHeading(),
+					projection.getWantedHeading(), direction)) {
+				projection.setWantedDirection(m.ahead);
+				projection.setWantedHeading(tick.getHeading() + m.turnRight);
+			}
+		}
+
+		double firingOffset = o_firingOffset(nearestWave.getFiringPosition(),
+				nearestWave.getTargetPosition(), tick.getPosition());
+
+		double _mae = firingOffset > 0 ? nearestWave.getMaxMAE() : nearestWave
+				.getMinMAE();
+		double gf = firingOffset > 0 ? firingOffset / _mae : -firingOffset
+				/ _mae;
+
+		boolean drawSurf = false;
+		if (drawSurf) {
+			for (tickProjection t : projection.getProjections()) {
+				Rectangle2D rect = new Rectangle2D.Double(t.getPosition()
+						.getX() - 2, t.getPosition().getY() - 2, 4, 4);
+				o_toDraw.add(rect);
+			}
+		}
+
+		double risk = org.pattern.utils.Utils.getDanger(gf, Math.abs(_mae), o_riskStorage, nearestWave);
+		return risk;
+	}
+
+	private Point2D o_pointsSurfing(GBulletFiredEvent wave) {
+		Point2D toGo = null;
+		Point2D enemyPosition = o_radar.getLockedEnemy() == null ? wave
+				.getFiringRobot().getPosition() : o_radar
+				.getLockedEnemy().getPosition();
+		Enemy e = o_radar.getLockedEnemy() == null ? wave
+				.getFiringRobot() : o_radar.getLockedEnemy();
+		double minRisk = Double.MAX_VALUE;
+		
+		for (Point2D p : org.pattern.utils.Utils.generatePoints(this, e)) {
+			if (p.distance(enemyPosition) < Costants.POINT_MIN_DIST_ENEMY) 
+				continue;
+			
+			double gf = org.pattern.utils.Utils.getProjectedGF(this, wave, p);
+			double mae = gf > 0 ? wave.getMaxMAE() : wave.getMinMAE();
+			double risk = org.pattern.utils.Utils.getDanger(gf, Math.abs(mae), o_riskStorage, wave);
+
+
+			if (risk < minRisk) {
+				minRisk = risk;
+				toGo = p;
+			}
+			
+		}
+		out.println("surfing at gf "+org.pattern.utils.Utils.getProjectedGF(this, wave, toGo));
+		return toGo;
+	}
+	private void o_updateFiredBullets() {
+		Enemy e = o_radar.getLockedEnemy();
+		List<GBulletFiredEvent> toRemove = new LinkedList<>();
+
+		if (e == null)
+			return;
+
+		for (GBulletFiredEvent bullet : o_firedBullets) {
+			double distanceFromTarget = bullet.getFiringPosition().distance(
+					e.getPosition());
+			double distanceTravelled = (getTime() - bullet.getFiringTime())
+					* bullet.getVelocity();
+
+			if (distanceFromTarget - distanceTravelled < Costants.GF_DIST_REMOVE_BULLET) {
+				toRemove.add(bullet);
+				continue;
+			}
+
+			if (Math.abs(distanceFromTarget - distanceTravelled) < Costants.GF_DIST_BULLET_HIT) {
+				double firingOffset = o_firingOffset(bullet.getFiringPosition(),
+						bullet.getTargetPosition(), e.getPosition());
+				double _mae = firingOffset > 0 ? bullet.getMaxMAE() : bullet
+						.getMinMAE();
+				double gf = firingOffset > 0 ? firingOffset / _mae
+						: -firingOffset / _mae;
+
+				//gfStorage.decay(1.1);
+				o_gfStorage.visit(bullet.getSnapshot(), gf);
+
+				toRemove.add(bullet);
+
+				// Rectangle2D _fpos = new
+				// Rectangle2D.Double(bullet.getFiringPosition().getX()-6,
+				// bullet.getFiringPosition().getY()-6, 12, 12);
+				// toDraw.add(_fpos);
+				//
+				// Rectangle2D _tpos = new
+				// Rectangle2D.Double(bullet.getTargetPosition().getX()-6,
+				// bullet.getTargetPosition().getY()-6, 12, 12);
+				// toDraw.add(_tpos);
+
+			}
+		}
+
+		for (GBulletFiredEvent b : toRemove) {
+			o_firedBullets.remove(b);
+		}
+
+	}
+	
+	private double o_firingOffset(Point2D firingPosition, Point2D targetPosition,
+			Point2D hitPosition) {
+		double firingBearing = robocode.util.Utils
+				.normalAbsoluteAngleDegrees(org.pattern.utils.Utils.absBearing(firingPosition,
+						hitPosition));
+		double bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(org.pattern.utils.Utils
+				.absBearing(firingPosition, targetPosition));
+
+		double ret;
+		if (firingBearing > bearing)
+			ret = firingBearing - bearing;
+		else
+			ret = -(bearing - firingBearing);
+
+		return robocode.util.Utils.normalRelativeAngleDegrees(ret);
+	}
+	
+	private void o_setWaveMAE(GBulletFiredEvent wave, double heading,
+			double velocity) {
+
+		double mae[] = new double[2];
+		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) {
+
+			mae[orbitDirection == -1 ? 0 : 1] = org.pattern.utils.Utils.getMAE(
+					wave.getFiringPosition(), wave.getTargetPosition(),
+					heading, velocity, wave.getVelocity(), orbitDirection, this);
+		}
+		wave.setMinMAE(Math.min(mae[0], mae[1]));
+		wave.setMaxMAE(Math.max(mae[0], mae[1]));
+		return;
+	}
+	
+	@Override
+	public void update(Observable arg0, Object arg1) {
+		if (arg1 instanceof GBulletFiredEvent) {
+			GBulletFiredEvent wave = (GBulletFiredEvent) arg1;
+			o_setWaveMAE(wave, getHeading(), getVelocity());
+			o_waves.addWave(wave);
+
+		}
+	}
 
 	@Override
 	public void onPaint(Graphics2D g) {
+		boolean meele = getOthers() > 1;
+		if (meele) {
 		g.setColor(Color.red);
 		if (m_nextRadarPoint != null)
 			g.drawLine((int) getX(), (int) getY(),
@@ -370,6 +787,80 @@ public class Rocky extends AdvancedRobot {
 			for (GBulletFiredEvent wave : m_waves.getWaves()) {
 				drawWaveAndMae(wave, g);
 			}
+		}
+		} else {
+			boolean paintWS = true;
+			boolean drawGF = true;
+			boolean drawWave = true;
+			
+			int STICK_LENGTH = (int)Costants.STICK_LENGTH;
+			int MINIMUM_RADIUS = (int)Costants.MINIMUM_RADIUS;
+			Color c = g.getColor();
+
+//			drawVisitCountStorageSegmented(gfStorage, g, 20, 20);
+//			drawVisitCountStorageSegmented(riskStorage, g, 400, 20);
+			
+			if (paintWS) {
+				g.setColor(Color.magenta);
+				Rectangle2D safeBF = new Rectangle2D.Double(18, 18,
+						getBattleFieldWidth() - 36, getBattleFieldHeight() - 36);
+				g.draw(safeBF);
+
+				Point2D center1 = new Point2D.Double(getX()
+						+ Math.sin(Math.toRadians(getHeading() - 90))
+						* MINIMUM_RADIUS, getY()
+						+ Math.cos(Math.toRadians(getHeading() - 90))
+						* MINIMUM_RADIUS);
+				Point2D center2 = new Point2D.Double(getX()
+						+ Math.sin(Math.toRadians(getHeading() + 90))
+						* MINIMUM_RADIUS, getY()
+						+ Math.cos(Math.toRadians(getHeading() + 90))
+						* MINIMUM_RADIUS);
+
+				drawPoint(center1, 10, g);
+				drawPoint(center2, 10, g);
+
+				double heading = o_ahead == 1 ? getHeading() : getHeading() + 180;
+				g.drawLine((int) getX(), (int) getY(),
+						(int) (getX() + Math.sin(Math.toRadians(heading))
+								* STICK_LENGTH),
+						(int) (getY() + Math.cos(Math.toRadians(heading))
+								* STICK_LENGTH));
+
+				g.drawArc((int) (center1.getX() - MINIMUM_RADIUS),
+						(int) (center1.getY() - MINIMUM_RADIUS),
+						MINIMUM_RADIUS * 2, MINIMUM_RADIUS * 2, 0, 360);
+				g.drawArc((int) (center2.getX() - MINIMUM_RADIUS),
+						(int) (center2.getY() - MINIMUM_RADIUS),
+						MINIMUM_RADIUS * 2, MINIMUM_RADIUS * 2, 0, 360);
+
+			}
+			c = g.getColor();
+			g.setColor(Color.RED);
+
+			if (drawWave) {
+				for (GBulletFiredEvent wave : o_waves.getWaves()) {
+					drawWaveAndMae(wave, g);
+				}
+			}
+
+			g.setColor(Color.GREEN);
+			if (drawGF) {
+				for (GBulletFiredEvent wave : o_firedBullets) {
+					drawWaveAndMae(wave, g);
+				}
+			}
+
+
+			g.setColor(Color.BLUE);
+			for (Shape s : o_toDraw) {
+				g.draw(s);
+			}
+
+
+			g.setColor(c);
+
+			o_toDraw.clear();
 		}
 
 		
@@ -412,8 +903,11 @@ public class Rocky extends AdvancedRobot {
 	}
 
 	private void drawPoint(Point2D point, int size, Graphics2D g) {
+
 		g.fillRect((int) (point.getX() - size / 2),
 				(int) (point.getY() - size / 2), size, size);
 
 	}
+
+
 }

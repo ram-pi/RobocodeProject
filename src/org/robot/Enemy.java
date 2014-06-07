@@ -21,6 +21,8 @@ public class Enemy implements Comparable{
 	private long lastUpdated;
 	private boolean dead;
 	
+	private long lastTimeDecel;
+	
 	public boolean isDead() {
 		return dead;
 	}
@@ -84,6 +86,11 @@ public class Enemy implements Comparable{
 	}
 	
 	public void updateEnemy(ScannedRobotEvent event,AdvancedRobot robot){
+		if (Math.abs(velocity) - Math.abs(robot.getVelocity()) > 0) {
+			this.lastTimeDecel = 0;
+		} else {
+			this.lastTimeDecel++;
+		}
 		
 		this.distance=event.getDistance();
 		this.energy=event.getEnergy();
@@ -99,6 +106,14 @@ public class Enemy implements Comparable{
 		this.lastUpdated = robot.getTime();
 	}
 	
+	public long getLastTimeDecel() {
+		return lastTimeDecel;
+	}
+
+	public void setLastTimeDecel(long lastTimeDecel) {
+		this.lastTimeDecel = lastTimeDecel;
+	}
+
 	public Point2D getPosition(){
 		return new Point2D.Double(x, y);
 	} 

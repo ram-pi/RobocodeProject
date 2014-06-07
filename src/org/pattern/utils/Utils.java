@@ -2,6 +2,8 @@ package org.pattern.utils;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.BitSet;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -11,12 +13,15 @@ import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
 import org.robot.Enemy;
 
+import com.sun.org.apache.bcel.internal.Constants;
+
 import robocode.AdvancedRobot;
 import robocode.Robocode;
 
 
 public class Utils {
 	
+
 
 	public static double Max(double a, double b) {
 		return a>b?a:b;
@@ -110,15 +115,15 @@ public class Utils {
 	}
 	
 	public static List<Point2D> generatePoints(AdvancedRobot robot, Enemy enemy) {
-		int numPoints = Costants.SURFING_NUM_POINTS;
+
 		double ENEMY_DISTANCE = 0.8;
 		List<Point2D> points = new LinkedList<>();
 		Point2D myPosition  = new Point2D.Double(robot.getX(), robot.getY());
 		double bearing;
 		
-		for (int i = 0; i < numPoints; i++) {
-			bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(robot.getHeading() + (360 / numPoints) * i);
-			double distance = Math.min(ENEMY_DISTANCE*enemy.getDistance(), 100);
+		for (int i = 0; i < Costants.SURFING_NUM_POINTS; i++) {
+			bearing = robocode.util.Utils.normalAbsoluteAngleDegrees(robot.getHeading() + (360 / Costants.SURFING_NUM_POINTS) * i);
+			double distance = Math.min(ENEMY_DISTANCE*enemy.getDistance(), Costants.SURFING_MAX_POINT_DIST);
 			points.add(calcPoint(myPosition, distance, bearing));
 		}
 		
@@ -127,7 +132,7 @@ public class Utils {
 	
 	public static List<Point2D> generatePointsPerpendicular(AdvancedRobot robot, Enemy enemy) {
 		List<Point2D> ret = null;
-		int numPoints = Costants.SURFING_NUM_POINTS;
+		int numPoints = (int)Costants.SURFING_NUM_POINTS;
 		Point2D myPos = new Point2D.Double(robot.getX(), robot.getY());	
 		for (int i = 0; i < numPoints; i++) {
 			
@@ -180,10 +185,69 @@ public class Utils {
 		return gf;
 	}
 	
-	public static double getDistanceFromWall(Point2D position, Rectangle2D battlefield) {
-		return Math.max(Math.abs(position.getX() - battlefield.getWidth()), Math.abs(position.getY()- battlefield.getHeight()));
+	public static double getDistanceFromWall(Point2D position, double width, double height) {
+		return Math.max(Math.abs(position.getX() - width), Math.abs(position.getY()- height));
 	}
+	
+	public static double getLateralVelocity(Point2D position, Point2D target, double velocity, double heading) {
+		
+		double angle = absBearingPerpendicular(target, position, 1);
+		if (Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - heading)) > 90) {
+			angle += 180;
+		}
+		
+		angle =  Math.abs(robocode.util.Utils.normalRelativeAngleDegrees(angle - heading));
+		double latv = Math.cos(Math.toRadians(angle)) * velocity;
+		return latv;
+	}
+	
+	public static void setMeasure(double value, double maxValue, int startIndex, BitSet bitSet) {
+		for (int i = 0; i < Costants.SEG_BITS_VARIABLE; i++) {
+			if(value > (maxValue/Costants.SEG_BITS_VARIABLE)*i)
+				bitSet.set(i+startIndex);
+		}
+	}
+	public static BitSet getSnapshot(AdvancedRobot robot, Enemy enemy) {
+		BitSet ret = new BitSet();
 
+		
+		Point2D myPos = new Point2D.Double(robot.getX(), robot.getY());
+		double maxDistance = Math.max(robot.getBattleFieldHeight(), robot.getBattleFieldWidth());
+
+		setMeasure(Math.abs(robot.getVelocity()), 8., 0, ret);
+		setMeasure(Math.abs(enemy.getVelocity()), 8., Costants.SEG_BITS_VARIABLE, ret);
+		//setMeasure(wave.getVelocity(), 20., Costants.SEG_BITS_VARIABLE*2, ret);
+		setMeasure(enemy.getPosition().distance(robot.getX(), robot.getY()), maxDistance, Costants.SEG_BITS_VARIABLE*2, ret);
+		setMeasure(getDistanceFromWall(enemy.getPosition(), robot.getBattleFieldWidth(), robot.getBattleFieldHeight()), maxDistance, Costants.SEG_BITS_VARIABLE*3, ret);
+		setMeasure(getLateralVelocity(myPos, enemy.getPosition(), enemy.getVelocity(), enemy.getHeading()), 90., Costants.SEG_BITS_VARIABLE*4, ret);
+		setMeasure(getLateralVelocity(enemy.getPosition(), myPos, robot.getVelocity(), robot.getHeading()), 90., Costants.SEG_BITS_VARIABLE*5, ret);
+		setMeasure(enemy.getEnergy(), 100., Costants.SEG_BITS_VARIABLE*6, ret);
+		setMeasure(enemy.getLastTimeDecel(), 50., Costants.SEG_BITS_VARIABLE*7, ret);
+		
+		return ret;
+	}
+	
+	public static double getDanger(double gf, double absMae, VisitCountStorageSegmented storage, GBulletFiredEvent wave) {
+		List<BitSet> Allnearest = storage.getNearest(wave.getSnapshot());
+		
+		List<BitSet> nearest = new LinkedList<>();
+		int k = Math.min(Costants.KNN_K, Allnearest.size());
+		for (int i = 0; i < k; i++) {
+			nearest.add(Allnearest.get(i));
+		}
+		double botWidth = Math.toDegrees(36/wave.getFiringPosition().distance(wave.getTargetPosition()));
+		double angle = gf * absMae;
+		double d = 0;
+		for (BitSet bitSet : nearest) {
+			double thisGf = storage.getGF(bitSet);
+			double thisAngle =  thisGf * absMae;
+			
+			double ux = (angle - thisAngle) / botWidth;
+			d += Math.pow(Math.E, - 0.5 * ux * ux)/storage.distance(bitSet, wave.getSnapshot());
+		}
+		return d;
+	}
+	
 	public static double getMAE(Point2D firingPosition, Point2D targetPosition,
 			double targetHeading, double targetVelocity, double waveVelocity,
 			int cw, AdvancedRobot robot) {
@@ -224,6 +288,65 @@ public class Utils {
 
 		return tempMae;
 	}
+
+	
+	public static double getFiringAngle(VisitCountStorageSegmented storage, Point2D myPosition, Enemy enemy, double firePower, BitSet snapshot, AdvancedRobot robot) {
+		
+
+		List<BitSet> Allnearest = storage.getNearest(snapshot);
+
+
+		List<BitSet> nearest = new LinkedList<>();
+		int k = Math.min(Costants.KNN_K, Allnearest.size());
+		for (int i = 0; i < k; i++) {
+			nearest.add(Allnearest.get(i));
+		}
+		
+		double botWidth = Math.toDegrees(36/enemy.getDistance());
+		double maxDensity = Double.MAX_VALUE;
+		double ret = 0;
+		double mae;
+		for (BitSet bs1 : nearest) {
+			double d = 0;
+			double gf = storage.getGF(bs1);
+			
+			int cw = 0;
+			if (gf > 0) {
+				cw = 1;
+			} else {
+				cw = -1;
+			}
+			mae = Math.abs(getMAE(myPosition, enemy.getPosition(), enemy.getHeading(),
+					enemy.getVelocity(), 20 - firePower * 3, cw, robot));
+			double angle = gf * mae;
+			
+			for(BitSet bs2 : nearest) {
+				if (bs1 == bs2)
+					continue;
+				
+				double gf1 = storage.getGF(bs1);
+				if (gf1 > 0) {
+					cw = 1;
+				} else {
+					cw = -1;
+				}
+				mae = Math.abs(getMAE(myPosition, enemy.getPosition(), enemy.getHeading(),
+						enemy.getVelocity(), 20 - firePower * 3, cw, robot));
+				double angle1 = gf1 * mae;
+				
+				if (Math.abs(angle1 - angle) < botWidth) {
+					d++;
+				}
+			}
+			if (d < maxDensity)  {
+				maxDensity = d;
+				ret = angle;
+			}
+		}
+		return ret;
+	}
+
+
 	
 	public static void setWaveMAE(GBulletFiredEvent wave, double heading,
 			double velocity, AdvancedRobot robot) {

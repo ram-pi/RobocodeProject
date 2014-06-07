@@ -49,7 +49,10 @@ public class Move {
 		Boolean smoothC2 = canSmooth(center2);
 		if (!smoothC1 && !smoothC2) {
 			ahead = direction * -1;
-			turnRight = 0;
+			turnRight *= -1;
+			if (turnRight == 0) 
+				turnRight = -4;
+			
 
 		} else if (smoothC1 && direction == 1 || smoothC2 && direction == -1) {
 			if (wantedHeading - heading > -4) {
