@@ -62,6 +62,8 @@ public class Projection {
 	private double bearingOffset;
 	private double wantedHeading;
 	private double heading;
+	private double distance;
+	private double distanceRemaining;
 	
 	public double getWantedHeading() {
 		return wantedHeading;
@@ -115,7 +117,56 @@ public class Projection {
 	private static double MAX_VELOCITY = 8.0;
 
 
-	public Projection(Point2D position, double heading, double velocity, int wantedDirection, double bearingOffset) {
+	
+	private double getNewVelocity(double velocity, double distance) {
+		if (distance < 0) {
+			// If the distance is negative, then change it to be positive
+			// and change the sign of the input velocity and the result
+			return -getNewVelocity(-velocity, -distance);
+		}
+
+		final double goalVel;
+
+		if (distance == Double.POSITIVE_INFINITY) {
+			goalVel = MAX_VELOCITY;
+		} else {
+			goalVel = Math.min(getMaxVelocity(distance), MAX_VELOCITY);
+		}
+
+		if (velocity >= 0) {
+			return Math.max(velocity - Rules.DECELERATION, Math.min(goalVel, velocity + Rules.ACCELERATION));
+		}
+		// else
+		return Math.max(velocity - Rules.ACCELERATION, Math.min(goalVel, velocity + maxDecel(-velocity)));
+	}
+
+	private final static double getMaxVelocity(double distance) {
+		final double decelTime = Math.max(1, Math.ceil(// sum of 0... decelTime, solving for decelTime using quadratic formula
+				(Math.sqrt((4 * 2 / Rules.DECELERATION) * distance + 1) - 1) / 2));
+
+		if (decelTime == Double.POSITIVE_INFINITY) {
+			return Rules.MAX_VELOCITY;
+		}
+
+		final double decelDist = (decelTime / 2.0) * (decelTime - 1) // sum of 0..(decelTime-1)
+				* Rules.DECELERATION;
+
+		return ((decelTime - 1) * Rules.DECELERATION) + ((distance - decelDist) / decelTime);
+	}
+
+	private static double maxDecel(double speed) {
+		double decelTime = speed / Rules.DECELERATION;
+		double accelTime = (1 - decelTime);
+
+		return Math.min(1, decelTime) * Rules.DECELERATION + Math.max(0, accelTime) * Rules.ACCELERATION;
+	}
+	
+	public Projection(Point2D position, double heading, double velocity, int wantedDirection, double bearingOffset, double distance) {
+
+		Costruct(position, heading, velocity, wantedDirection, bearingOffset, distance); 
+	}
+	
+	private void Costruct(Point2D position, double heading, double velocity, int wantedDirection, double bearingOffset, double distance) {
 		this.projections = new  LinkedList<>();
 		this.wantedDirection = wantedDirection;
 		this.wantedHeading = heading+bearingOffset;
@@ -123,9 +174,14 @@ public class Projection {
 		this.velocity = velocity;
 		this.position = position;
 		this.heading = heading;
+		this.distance = distance;
+		this.distanceRemaining = distance;
 		
 		
 		init();
+	}
+	public Projection(Point2D position, double heading, double velocity, int wantedDirection, double bearingOffset) {
+		Costruct(position, heading, velocity, wantedDirection, bearingOffset, Double.POSITIVE_INFINITY);
 	}
 	
 	public void setTurningAdjustment(double angle) {
@@ -196,28 +252,30 @@ public class Projection {
 		// updating velocityh
 		
 		//check if we change from dec to acc
-		double decTime = Math.abs(v)/2.0;
-		double accTime = (1 - decTime);
+//		double decTime = Math.abs(v)/2.0;
+//		double accTime = (1 - decTime);
+//		
+//		if (v * wantedDirection < 0 && accTime > 0) {
+//			v += wantedDirection * decTime * Rules.DECELERATION;
+//			v += wantedDirection * accTime * Rules.ACCELERATION;
+//		}
+//		else {
+//			v += a;
+//		}
+//		
+//		if (v > 8.)
+//			v = 8.;
+//		
+//		if (v < -8.)
+//			v = -8.;
 		
-		if (v * wantedDirection < 0 && accTime > 0) {
-			v += wantedDirection * decTime * Rules.DECELERATION;
-			v += wantedDirection * accTime * Rules.ACCELERATION;
-		}
-		else {
-			v += a;
-		}
-		
-		if (v > 8.)
-			v = 8.;
-		
-		if (v < -8.)
-			v = -8.;
+		v = getNewVelocity(v, distanceRemaining);
 		
 
 		//updating position
 		double hRad = Math.toRadians(h);
 		position = new Point2D.Double(lastProjection.getPosition().getX() + (v * Math.cos(Math.PI/2 - hRad)), lastProjection.getPosition().getY() + (v *Math.sin(Math.PI/2 - hRad)));
-		
+		distanceRemaining -= Math.abs(v);
 		//todo check collision
 		
 		projection.setHeading(h);

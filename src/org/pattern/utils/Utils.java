@@ -92,7 +92,7 @@ public class Utils {
 	}
 	
 
-	private static double firingOffset(Point2D firingPosition, Point2D targetPosition,
+	public static double firingOffset(Point2D firingPosition, Point2D targetPosition,
 			Point2D hitPosition) {
 		double firingBearing = robocode.util.Utils
 				.normalAbsoluteAngleDegrees(Utils.absBearing(firingPosition,
@@ -182,6 +182,61 @@ public class Utils {
 	
 	public static double getDistanceFromWall(Point2D position, Rectangle2D battlefield) {
 		return Math.max(Math.abs(position.getX() - battlefield.getWidth()), Math.abs(position.getY()- battlefield.getHeight()));
+	}
+	
+	public static double getMAE(Point2D firingPosition, Point2D targetPosition,
+			double targetHeading, double targetVelocity, double waveVelocity,
+			int cw, AdvancedRobot robot) {
+
+		double angle = org.pattern.utils.Utils.absBearingPerpendicular(
+				targetPosition, firingPosition, cw);
+		Move m = new Move(robot);
+		m.move(angle, targetHeading);
+		// TODO use values 2 ticks before detecting the wave
+		Projection projection = new Projection(targetPosition, targetHeading,
+				targetVelocity, m.ahead, m.turnRight);
+
+		tickProjection tick = projection.projectNextTick();
+		double tempMae = cw == -1 ? Double.MAX_VALUE : Double.MIN_VALUE;
+
+		while (tick.getPosition().distance(firingPosition) > tick.getTick()
+				* waveVelocity) {
+			tick = projection.projectNextTick();
+
+			if (cw == -1) {
+				tempMae = Math.min(
+						tempMae,
+						firingOffset(firingPosition, targetPosition,
+								tick.getPosition()));
+			} else {
+				tempMae = Math.max(
+						tempMae,
+						firingOffset(firingPosition, targetPosition,
+								tick.getPosition()));
+			}
+
+			if (m.smooth(tick.getPosition(), tick.getHeading(),
+					projection.getWantedHeading(), m.ahead)) {
+				projection.setWantedDirection(m.ahead);
+				projection.setWantedHeading(tick.getHeading() + m.turnRight);
+			}
+		}
+
+		return tempMae;
+	}
+	
+	public static void setWaveMAE(GBulletFiredEvent wave, double heading,
+			double velocity, AdvancedRobot robot) {
+
+		double mae[] = new double[2];
+		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) {
+
+			mae[orbitDirection == -1 ? 0 : 1] = getMAE(	wave.getFiringPosition(), wave.getTargetPosition(),
+					heading, velocity, wave.getVelocity(), orbitDirection, robot);
+		}
+		wave.setMinMAE(Math.min(mae[0], mae[1]));
+		wave.setMaxMAE(Math.max(mae[0], mae[1]));
+		return;
 	}
 	
  }

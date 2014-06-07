@@ -7,17 +7,35 @@ package org.robot;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map;
+
 
 import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.Projection.tickProjection;
 import org.pattern.movement.WallSmoothing;
+
+import org.pattern.movement.WaveSurfer;
+import org.pattern.radar.GBulletFiredEvent;
+import org.pattern.radar.UpdatedEnemiesListEvent;
+import org.pattern.utils.Costants;
+
 import org.pattern.utils.EnemyInfo;
 import org.pattern.utils.PositionFinder;
+import org.pattern.utils.VisitCountStorage;
+
+
+
 
 import robocode.AdvancedRobot;
+
 import robocode.HitWallEvent;
+
+import robocode.BulletHitBulletEvent;
+import robocode.HitByBulletEvent;
+
 import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
@@ -33,14 +51,19 @@ public class ScannerRobot extends AdvancedRobot {
 	private Boolean radarGoingRight;
 	private Boolean corner;
 	private Hashtable<String, Enemy> enemies;
+	public Map<String, VisitCountStorage> storages;
 	private Boolean meleeRadar;
+
 	private Move move;
 	private boolean wallSmoothing;
+	public WaveSurfer waves;
+
 
 	@Override
 	public void run() {
 		setAdjustRadarForRobotTurn(true);
-
+		setAdjustGunForRobotTurn(true);
+		setAdjustRadarForRobotTurn(true);
 
 		en = new Enemy();
 		enemies = new Hashtable<String, Enemy>();
@@ -48,6 +71,8 @@ public class ScannerRobot extends AdvancedRobot {
 		radarGoingRight = true;
 		corner = false;
 		checkEnemies();
+		waves = new WaveSurfer(this);
+		storages = new HashMap<String, VisitCountStorage>();
 		
 		move=new Move(this);
 		move.ahead=1;
@@ -58,6 +83,7 @@ public class ScannerRobot extends AdvancedRobot {
 		setTurnRadarRight(360);
 
 		do {
+			waves.removePassedWaves();
 			checkEnemies();
 			doScan();
 			doMovement();
@@ -81,6 +107,58 @@ public class ScannerRobot extends AdvancedRobot {
 			fire(firePower);
 		}
 	}
+	
+	@Override
+	public void onHitByBullet(HitByBulletEvent event) {
+		GBulletFiredEvent wave = waves.getNearestWave();
+		Point2D myPos = new Point2D.Double(getX(), getY());
+
+	
+		// TODO we lost a wave
+		if (wave == null || Math.abs(myPos.distance(wave.getFiringPosition())
+				- (getTime() - wave.getFiringTime()) * wave.getVelocity()) > Costants.SURFING_MAX_DISTANE_HITTED_WAVE)
+			return;
+
+		double firingOffset = org.pattern.utils.Utils.firingOffset(wave.getFiringPosition(),
+				wave.getTargetPosition(), myPos);
+		double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
+				: -firingOffset / wave.getMinMAE();
+
+		storages.get(event.getName()).visit(gf);
+	
+	}
+	
+	@Override
+	public void onBulletHitBullet(BulletHitBulletEvent event) {
+		Point2D bulletPosition = new Point2D.Double(event.getBullet().getX(),
+				event.getBullet().getY());
+
+		GBulletFiredEvent hittedWave = null;
+		for (GBulletFiredEvent wave : waves.getWaves()) {
+			if (Math.abs(bulletPosition.distance(wave.getFiringPosition())
+					- ((getTime() - wave.getFiringTime()) * event.getBullet()
+							.getVelocity())) < 20) {
+				hittedWave = wave;
+				break;
+			}
+		}
+
+		if (hittedWave == null)
+			return;
+
+		double firingOffset = org.pattern.utils.Utils.firingOffset(hittedWave.getFiringPosition(),
+				hittedWave.getTargetPosition(), bulletPosition);
+		double mae = firingOffset > 0 ? hittedWave.getMaxMAE() : hittedWave
+				.getMinMAE();
+		double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset / mae;
+
+		storages.get(event.getBullet().getName()).visit(gf);
+		waves.getWaves().remove(hittedWave);
+		return;
+
+	}
+	
+	
 
 	private void doMovement() {
 		Point2D actualPosition = new Point2D.Double(getX(), getY());
@@ -244,12 +322,38 @@ public class ScannerRobot extends AdvancedRobot {
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent event) {
-		en = new Enemy(event, this);
-		enemies.put(en.getName(), en);
+		
 		info = new EnemyInfo(en, getTime());
+		Enemy enemy = enemies.get(event.getName());
+		
 
+		if (enemy == null) {	
+			enemy = new Enemy(event, this);	
+			enemies.put(enemy.getName(), enemy);
+			storages.put(enemy.getName(), new VisitCountStorage());
+		}
+		
+		if (getTime() - enemy.getLastUpdated() < Costants.TIME_THRESHOLD && 
+				(enemy.getEnergy() - event.getEnergy()) > 0. &&
+				(enemy.getEnergy() - event.getEnergy()) < 3.1) {
+			
+				GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
+				gBulletFiredEvent.setFiringRobot(enemy);
+				gBulletFiredEvent.setEnergy(enemy.getEnergy() - event.getEnergy());
+				gBulletFiredEvent.setVelocity(20 - 3 * (enemy.getEnergy() - event.getEnergy()));
+				gBulletFiredEvent.setFiringTime(getTime()-1);
+				gBulletFiredEvent.setFiringPosition(enemy.getPosition());//TODO this or the updated one?
+				gBulletFiredEvent.setTargetPosition(new Point2D.Double(getX(), getY()));
+				org.pattern.utils.Utils.setWaveMAE(gBulletFiredEvent, getHeading(), getVelocity(), this);
+				waves.addWave(gBulletFiredEvent);
+
+		}
+		
+		enemy.updateEnemy(event, this);
+		enemies.put(enemy.getName(), enemy);
+		
 		if (!meleeRadar) {
-			Double radarTurn = getHeading() - getRadarHeading() + en.getBearing();
+			Double radarTurn = getHeading() - getRadarHeading() + enemy.getBearing();
 			setTurnRadarRight(Utils.normalRelativeAngleDegrees(radarTurn));
 		}
 
@@ -262,10 +366,58 @@ public class ScannerRobot extends AdvancedRobot {
 		if (nextRadarPoint != null)
 			g.drawLine((int)getX(), (int)getY(), (int)nextRadarPoint.getX(), (int)nextRadarPoint.getY());
 		g.fillRect((int) nextPosition.getX(), (int) nextPosition.getY(), 10, 10);
-		
+
 		double heading=move.ahead == 1 ? getHeading() : getHeading()+180;
 		double endX = getX()+Math.sin(Math.toRadians(heading))*WallSmoothing.STICK_LENGTH;
 		double endY = getY()+Math.cos(Math.toRadians(heading))*WallSmoothing.STICK_LENGTH;
 		g.drawLine((int) getX(), (int) getY(), (int)endX, (int)endY);
+
+		boolean drawWave = true;
+		if (drawWave) {
+			for (GBulletFiredEvent wave : waves.getWaves()) {
+				drawWaveAndMae(wave, g);
+			}
+		}
+	}
+	
+	private void drawWaveAndMae(GBulletFiredEvent wave, Graphics2D g) {
+		double maeLength = 300;
+		double radius = wave.getVelocity() * (getTime() - wave.getFiringTime());
+		g.drawArc((int) (wave.getFiringPosition().getX() - radius), (int) (wave
+				.getFiringPosition().getY() - radius), (int) radius * 2,
+				(int) radius * 2, 0, 360);
+		g.drawRect((int) wave.getFiringPosition().getX() - 5, (int) wave
+				.getFiringPosition().getY() - 5, 10, 10);
+
+		double absBearing = org.pattern.utils.Utils.absBearing(wave.getFiringPosition(),
+				wave.getTargetPosition());
+
+		drawPoint(wave.getFiringPosition(), 4, g);
+		drawPoint(wave.getTargetPosition(), 4, g);
+		// //draw MAE
+		g.drawLine((int) wave.getFiringPosition().getX(), (int) wave
+				.getFiringPosition().getY(), (int) (wave.getTargetPosition()
+				.getX()), (int) (wave.getTargetPosition().getY()));
+
+		g.drawLine(
+				(int) wave.getFiringPosition().getX(),
+				(int) wave.getFiringPosition().getY(),
+				(int) (wave.getFiringPosition().getX() + Math.sin(Math
+						.toRadians(absBearing + wave.getMaxMAE())) * maeLength),
+				(int) (wave.getFiringPosition().getY() + Math.cos(Math
+						.toRadians(absBearing + wave.getMaxMAE())) * maeLength));
+
+		g.drawLine(
+				(int) wave.getFiringPosition().getX(),
+				(int) wave.getFiringPosition().getY(),
+				(int) (wave.getFiringPosition().getX() + Math.sin(Math
+						.toRadians(absBearing + wave.getMinMAE())) * maeLength),
+				(int) (wave.getFiringPosition().getY() + Math.cos(Math
+						.toRadians(absBearing + wave.getMinMAE())) * maeLength));
+	}
+	private void drawPoint(Point2D point, int size, Graphics2D g) {
+		g.fillRect((int) (point.getX() - size / 2),
+				(int) (point.getY() - size / 2), size, size);
+
 	}
 }

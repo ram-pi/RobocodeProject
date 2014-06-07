@@ -4,7 +4,11 @@ import java.awt.geom.Point2D;
 import java.util.Hashtable;
 import java.util.Random;
 
+import org.pattern.movement.Projection;
+import org.pattern.movement.WaveSurfer;
+import org.pattern.radar.GBulletFiredEvent;
 import org.robot.Enemy;
+import org.robot.ScannerRobot;
 
 import robocode.AdvancedRobot;
 
@@ -62,6 +66,13 @@ public class PositionFinder {
 		if (isOnTheSameRect(p))
 			eval += eval*0.2;
 		
+		for (GBulletFiredEvent wave : ((ScannerRobot)robot).waves.getWaves()) {
+			double firingOffset = org.pattern.utils.Utils.firingOffset(wave.getFiringPosition(),
+					wave.getTargetPosition(), p);
+			double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
+					: -firingOffset / wave.getMinMAE();
+			eval += ((ScannerRobot)robot).storages.get(wave.getFiringRobot().getName()).getVisits(gf);
+		}
 		return eval;
 	}
 	
@@ -140,7 +151,7 @@ public class PositionFinder {
 		int i = 0;
 		while (i < attempt) {
 			i++;
-			Double randomDistance = e.getDistance()*0.8;
+			Double randomDistance = e.getDistance()*0.8 + Math.random()*100;
 			randomDistance = Math.min(randomDistance, 100);
 			Point2D.Double tmp = Utils.calcPoint(myPos, randomDistance, generateRandomAngle());
 			Double tmpEval = evaluateRisk(tmp);

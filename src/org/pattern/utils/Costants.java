@@ -15,5 +15,7 @@ public class Costants {
 	public static double MINIMUM_RADIUS = 114;
 	public static int SURFING_NUM_POINTS = 200;
 	public static double SURFING_MAX_POINTS_DIST = 160;
+	public static double SURFING_MAX_DISTANE_HITTED_WAVE = 50;
+	public static double TIME_THRESHOLD = 5;
 	
 }
