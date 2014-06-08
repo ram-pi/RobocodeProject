@@ -13,7 +13,7 @@ public class Costants {
 	public static int GF_DIST_BULLET_HIT = 30;
 	public static int FIREPOWER_ENERGY_TRESHOLD = 15;
 	public static double FIREPOWER_FP_UNDER_TRESHOLD = 1.;
-	public static double GUN_MAX_DISPLACEMENT_DEGREE = 3.9;
+	public static double GUN_MAX_DISPLACEMENT_DEGREE = 2.0;
 	public static double STICK_LENGTH = 160;
 	public static double MINIMUM_RADIUS = 114;
 	public static double SURFING_MAX_POINTS_DIST = 160;

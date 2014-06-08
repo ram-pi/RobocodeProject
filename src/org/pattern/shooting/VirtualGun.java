@@ -56,6 +56,9 @@ public class VirtualGun {
 	}
 	
 	public void checkEnemy(Enemy e) {
+		if (e == null)
+			return;
+		
 		double vel;
 		List<Bullet> toRemove = new LinkedList<>();
 		for (Bullet b : bullets) {
