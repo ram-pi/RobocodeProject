@@ -57,7 +57,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 	// on paint meele
 	private Point2D m_nextRadarPoint;
-	
+
 	private Map<String, VirtualGun> m_hot;
 	private Map<String, VirtualGun> m_circ;
 
@@ -72,7 +72,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 	Point2D o_toGo = null;
 	boolean o_pointsSurfing = false;
 
-	
+
 	boolean o_orbitSurfing = true;
 	double o_orbit_angle = 0.0;
 	double o_orbit_distance = 0.0;
@@ -119,12 +119,12 @@ public class Rocky extends AdvancedRobot implements Observer{
 		setAdjustGunForRobotTurn(true);
 
 		setAdjustRadarForGunTurn(true);
-		
+
 		o_maxDistance = Math.sqrt(getBattleFieldWidth() * getBattleFieldWidth()
 				+ getBattleFieldHeight() * getBattleFieldHeight());
-		
+
 		o_lastVelocity = getVelocity();
-		
+
 		if (meele) {
 			m_move = new Move(this);
 		} 
@@ -153,13 +153,15 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 	private void m_updateVirtualGun() {
 		for (String enemy: m_hot.keySet()) {
-			m_hot.get(enemy).checkEnemy(m_enemies.get(enemy));
+			if (enemy != null)
+				m_hot.get(enemy).checkEnemy(m_enemies.get(enemy));
 		}
 		for (String enemy: m_circ.keySet()) {
-			m_circ.get(enemy).checkEnemy(m_enemies.get(enemy));
+			if (enemy != null)
+				m_circ.get(enemy).checkEnemy(m_enemies.get(enemy));
 		}
 	}
-	
+
 	private void doOvoShotting() {
 
 
@@ -181,10 +183,10 @@ public class Rocky extends AdvancedRobot implements Observer{
 			angle = org.pattern.utils.Utils
 					.absBearingPerpendicular(new Point2D.Double(getX(),
 							getY()), e.getPosition(), 1);
-			
+
 			angle = o_adjustDistance(angle, 1);
-			
-			
+
+
 			m.move(angle, getHeading());
 			Projection proj = new Projection(
 					new Point2D.Double(getX(), getY()), getHeading(),
@@ -201,9 +203,9 @@ public class Rocky extends AdvancedRobot implements Observer{
 			m.move(o_orbit_angle, getHeading());
 			double oldAhead = m.ahead;
 			if(m.smooth(myPosition, getHeading(), m.turnRight, m.ahead)) {
-					if (oldAhead * m.ahead < 0) 
-						o_orbit_distance *= -1;
-				}
+				if (oldAhead * m.ahead < 0) 
+					o_orbit_distance *= -1;
+			}
 			_ahead = o_orbit_distance;
 			_turnRight = m.turnRight;
 		}
@@ -238,14 +240,14 @@ public class Rocky extends AdvancedRobot implements Observer{
 			e = o_waves.getNearestWave().getFiringRobot();
 		if (e == null)
 			return angle;
-					
+
 		if (e.getEnergy()/getEnergy() > Costants.ENERGY_RATIO_TAKE_DISTANCE && e.getDistance() < Costants.MIN_DISTANCE) {
 			angle -= orbitDirection * Costants.DISTANCE_OFFSET;
 		}
 		else if (getEnergy()/e.getEnergy() > Costants.ENERGY_RATIO_GO_NEAR && e.getDistance() > Costants.MAX_DISTANCE) {
 			angle += orbitDirection * Costants.DISTANCE_OFFSET;
 		}
-		
+
 		return angle;
 	}
 	private void doOvOscan() {
@@ -562,22 +564,22 @@ public class Rocky extends AdvancedRobot implements Observer{
 		VirtualGun vgHot = m_hot.get(m_en.getName());
 		VirtualGun vgCirc = m_circ.get(m_en.getName());
 		/* Perform head on target for gun movement */
-		
+
 		double hotAmt = Utils.normalAbsoluteAngleDegrees(Math.toDegrees((getHeadingRadians() + m_en.getBearingRadians() - getGunHeadingRadians())));
 		hotAmt = org.pattern.utils.Utils.absBearing(myPos, m_en.getPosition());
 		double circAmt = org.pattern.utils.Utils.getCircularAngle(myPos, m_en, firePower);
-		
-		
-		
+
+
+
 		double angle = hotAmt;
 		if (vgCirc.getScore() > vgHot.getScore())
 			angle = circAmt;
-		
-		
+
+
 		angle = Utils.normalRelativeAngleDegrees(angle - getGunHeading());
 		setTurnGunRight(angle);
 
-		if (getGunHeat() == 0) {
+		if (getGunHeat() == 0 && getGunTurnRemaining() < Costants.GUN_MAX_DISPLACEMENT_DEGREE) {
 			vgHot.fire(hotAmt, firePower);
 			vgCirc.fire(circAmt, firePower);
 			fire(firePower);
@@ -689,7 +691,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 		double angle = 0, ret = 0;
 		double minRisk = Double.MAX_VALUE;
 
-		
+
 		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection ++) { 
 			if (orbitDirection != 0)
 				angle = org.pattern.utils.Utils.absBearingPerpendicular(myPos, e.getPosition(), orbitDirection);
@@ -904,14 +906,14 @@ public class Rocky extends AdvancedRobot implements Observer{
 					drawWaveAndMae(wave, g);
 				}
 			}
-			
+
 			g.setColor(Color.GREEN);
 			if (m_en != null) {
 				drawVirtualGun(m_circ.get(m_en.getName()), g);
 				drawVirtualGun(m_hot.get(m_en.getName()), g);
 			}
-			
-			
+
+
 		} else {
 			boolean paintWS = true;
 			boolean drawGF = true;
@@ -1000,7 +1002,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 			g.draw(line);
 		}
 	}
-	
+
 	private void drawWaveAndMae(GBulletFiredEvent wave, Graphics2D g) {
 		double maeLength = 300;
 		double radius = wave.getVelocity() * (getTime() - wave.getFiringTime());
