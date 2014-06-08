@@ -22,12 +22,12 @@ public class Costants {
 	public static double RADAR_STICK_LENGTH = 140.0;
 	public static double SURFING_NUM_POINTS = 200;
 	public static double SURFING_MAX_POINT_DIST = 100;
-	public static final double DISTANCE_OFFSET = 7.;
+	public static final double DISTANCE_OFFSET = 10.;
 	public static final double SURFING_BULLET_HIT_BULLET_DISTANCE = 40;
 	public static final double ENERGY_RATIO_TAKE_DISTANCE = 1.5;
 	public static final double MIN_DISTANCE = 350;
 	public static final double ENERGY_RATIO_GO_NEAR = 3;
 	public static final double MAX_DISTANCE = 150;
-	public static final double ENERGY_RATIO_DONT_FIRE = 2.0;
-	public static final double DISTANCE_DONT_FIRE = 450;
+	public static final double ENERGY_RATIO_DONT_FIRE = 3.0;
+	public static final double DISTANCE_DONT_FIRE = 550;
 }

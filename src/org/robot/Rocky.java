@@ -66,8 +66,10 @@ public class Rocky extends AdvancedRobot implements Observer{
 	
 	Point2D o_toGo = null;
 	boolean o_pointsSurfing = false;
-	boolean o_orbitSurfing = true;
 	
+	boolean o_orbitSurfing = true;
+	double o_orbit_angle = 0.0;
+	double o_orbit_distance = 0.0;
 	// on paint ovo
 	public List<Shape> o_toDraw;
 	private int o_ahead;
@@ -149,7 +151,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 			o_lastTimeDecel = 0;
 		else
 			o_lastTimeDecel++;
-		
+		o_lastVelocity = getVelocity();
 		Point2D myPosition = new Point2D.Double(getX(), getY());
 		GBulletFiredEvent nearestWave = o_waves.getNearestWave();
 		double angle = 0;
@@ -159,20 +161,31 @@ public class Rocky extends AdvancedRobot implements Observer{
 			angle = org.pattern.utils.Utils
 					.absBearingPerpendicular(new Point2D.Double(getX(),
 							getY()), e.getPosition(), 1);
+			
+			angle = o_adjustDistance(angle, 1);
+			
+			
 			m.move(angle, getHeading());
 			Projection proj = new Projection(
 					new Point2D.Double(getX(), getY()), getHeading(),
 					getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
 			tickProjection t = proj.projectNextTick();
 			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
+			_ahead = m.ahead * Double.POSITIVE_INFINITY;
+			_turnRight = m.turnRight;
 		} else if (o_toGo == null && nearestWave != null && o_pointsSurfing ) {
 			o_toGo = o_pointsSurfing(nearestWave);
 		} else if (nearestWave != null && o_orbitSurfing) {
 			Enemy e = o_radar.getLockedEnemy() == null ? nearestWave.getFiringRobot() : o_radar.getLockedEnemy();
-			angle  = o_orbitSurfing(nearestWave, e);
-			m.move(angle, getHeading());
-			m.smooth(myPosition, getHeading(), m.turnRight, m.ahead);
-
+			o_orbitSurfing(nearestWave, e);
+			m.move(o_orbit_angle, getHeading());
+			double oldAhead = m.ahead;
+			if(m.smooth(myPosition, getHeading(), m.turnRight, m.ahead)) {
+					if (oldAhead * m.ahead < 0) 
+						o_orbit_distance *= -1;
+				}
+			_ahead = o_orbit_distance;
+			_turnRight = m.turnRight;
 		}
 		
 		if (o_toGo != null && o_pointsSurfing) {
@@ -184,7 +197,10 @@ public class Rocky extends AdvancedRobot implements Observer{
 			tickProjection t = proj.projectNextTick();
 //			if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead)) 
 //				toGo = null;
+			
 			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
+			_ahead = m.ahead;
+			_turnRight = m.turnRight;
 		}
 		
 		boolean drawTogo = false;
@@ -202,13 +218,25 @@ public class Rocky extends AdvancedRobot implements Observer{
 //		m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
 //				m.ahead);
 //
-		o_ahead = m.ahead;
-		_turnRight = m.turnRight;
-		_ahead = o_ahead * 100;
-
 		setAhead(_ahead);
 		setTurnRight(_turnRight);
 		
+	}
+	private double o_adjustDistance(double angle, int orbitDirection) {
+		Enemy e = o_radar.getLockedEnemy();
+		if (e == null && o_waves.getNearestWave() != null) 
+			e = o_waves.getNearestWave().getFiringRobot();
+		if (e == null)
+			return angle;
+					
+		if (e.getEnergy()/getEnergy() > Costants.ENERGY_RATIO_TAKE_DISTANCE && e.getDistance() < Costants.MIN_DISTANCE) {
+			angle -= orbitDirection * Costants.DISTANCE_OFFSET;
+		}
+		else if (getEnergy()/e.getEnergy() > Costants.ENERGY_RATIO_GO_NEAR && e.getDistance() > Costants.MAX_DISTANCE) {
+			angle += orbitDirection * Costants.DISTANCE_OFFSET;
+		}
+		
+		return angle;
 	}
 	private void doOvOscan() {
 		o_radar.doScan();
@@ -628,24 +656,26 @@ public class Rocky extends AdvancedRobot implements Observer{
 	private double o_orbitSurfing(GBulletFiredEvent wave, Enemy e) {
 		Move m = new Move(this);
 		Point2D myPos = new Point2D.Double(getX(), getY());
-		double angle, ret = 0;
+		double angle = 0, ret = 0;
 		double minRisk = Double.MAX_VALUE;
 		
-		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) { 
-			angle = org.pattern.utils.Utils.absBearingPerpendicular(myPos, e.getPosition(), orbitDirection);
+		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection ++) { 
+			if (orbitDirection != 0)
+				angle = org.pattern.utils.Utils.absBearingPerpendicular(myPos, e.getPosition(), orbitDirection);
 			
-			if (e.getEnergy()/getEnergy() > Costants.ENERGY_RATIO_TAKE_DISTANCE && e.getDistance() < Costants.MIN_DISTANCE) {
-				angle -= orbitDirection * Costants.DISTANCE_OFFSET;
-			}
-			else if (getEnergy()/e.getEnergy() > Costants.ENERGY_RATIO_GO_NEAR && e.getDistance() > Costants.MAX_DISTANCE) {
-				angle += orbitDirection * Costants.DISTANCE_OFFSET;
-			}
-			
+			angle = o_adjustDistance(angle, orbitDirection == 0 ? 1 : orbitDirection);
+
 			m.move(angle, getHeading());
-			double risk = o_surfWave(wave, m.turnRight, m.ahead);
+			double risk;
+			if (orbitDirection == 0) {
+				risk = o_surfWave(wave, angle, m.ahead, 0);
+			} else {
+				risk = o_surfWave(wave, m.turnRight, m.ahead, m.ahead * Double.POSITIVE_INFINITY);
+			}
 			if (risk < minRisk) {
 				minRisk = risk;
-				ret = angle;
+				o_orbit_angle = angle;
+				o_orbit_distance = orbitDirection == 0 ? 0 : m.ahead * Double.POSITIVE_INFINITY;
 			}
 		}
 		return ret;
@@ -653,11 +683,11 @@ public class Rocky extends AdvancedRobot implements Observer{
 	}
 	
 	private double o_surfWave(GBulletFiredEvent nearestWave,
-			double bearingOffset, int direction) {
+			double bearingOffset, int direction,double distance) {
 		Point2D myPosition = new Point2D.Double(getX(), getY());
 
 		Projection projection = new Projection(myPosition, getHeading(),
-				getVelocity(), direction, bearingOffset);
+				getVelocity(), direction, bearingOffset, distance);
 
 		tickProjection tick = projection.projectNextTick();
 		int timeElapsed = (int) (getTime() - nearestWave.getFiringTime());
