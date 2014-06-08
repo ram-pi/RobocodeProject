@@ -262,21 +262,24 @@ public class PositionFinder {
 		double danger = 0.0;
 		Set<String> keys = enemies.keySet();
 		Rectangle2D field = new Rectangle2D.Double(0.0, 0.0, w, h);
-		for (String key : keys) {
-			Enemy e = enemies.get(key);
-			//danger += 0.1 / toEval.distance(field.getCenterX(), field.getCenterY());
-			danger += 1 / toEval.distanceSq(e.getPosition());
-			//danger += 1 / toEval.distance(actualPosition);
-		}
-		
 		Move m = new Move(robot);
 		double angle = Utils.absBearing(actualPosition, toEval);
 		m.move(angle, heading);
 		double ux = m.turnRight / Costants.WIDTH_DANGER_SAME_DIRECTION;
-		//danger += Math.pow(Math.E, - 0.5 * ux * ux);
+		danger += Math.pow(Math.E, - 0.5 * ux * ux);
 		
 		double ux_ = toEval.distance(field.getCenterX(), field.getCenterY()) / Costants.MIN_RISK_SAFE_DISTANCE_CENTER;
-		//danger += Math.pow(Math.E, - 0.5 * ux_ * ux_);
+		danger += Math.pow(Math.E, - 0.5 * ux_ * ux_);
+		double enemyDanger = 1;
+		for (String key : keys) {
+			Enemy e = enemies.get(key);
+			//danger += 0.1 / toEval.distance(field.getCenterX(), field.getCenterY());
+			danger = (1 + danger)/toEval.distanceSq(e.getPosition());
+			//danger += 1 / toEval.distance(actualPosition);
+		}
+		
+		
+
 		
 		return danger;
 	}
