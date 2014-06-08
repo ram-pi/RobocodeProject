@@ -134,6 +134,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 		if (meele) {
 			m_move = new Move(this);
+			o_gfStorage = new VisitCountStorageSegmented();
 		} 
 
 

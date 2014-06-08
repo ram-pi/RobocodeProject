@@ -227,7 +227,10 @@ public class PositionFinder {
 		int i = 0;
 		((Rocky)robot).m_pointDebug.clear();
 		((Rocky)robot).m_pointRiskDebug.clear();
+		
 		double maxRisk = Double.MIN_VALUE;
+		int counter = 0;
+		double average = 0;
 		while (i < attempt 
 				&& !enemies.isEmpty()) {
 			i++;
@@ -237,10 +240,12 @@ public class PositionFinder {
 			if (!inBattlefield(tmp))
 				continue;
 			//Double tmpEval = evaluateRisk(tmp);
-			Double tmpEval = evaluateRiskRevision(tmp, robot.getHeading());
+			Double tmpEval = evaluateRiskRevision(tmp, robot.getHeading(), robot.getOthers());
 
 			((Rocky)robot).m_pointDebug.add(tmp);
 			((Rocky)robot).m_pointRiskDebug.add(tmpEval);
+			counter++;
+			average+=tmpEval;
 			if (tmpEval < minimumRisk) {
 				minimumRisk = tmpEval;
 				ret = tmp;
@@ -253,12 +258,13 @@ public class PositionFinder {
 		((Rocky)robot).m_minRiskDebug = minimumRisk;
 		robot.out.println("MaxRisk :" + maxRisk);
 		robot.out.println("MinRisk :" + minimumRisk);
+		robot.out.println("Avg :" + average/counter);
 		lastLastPosition = lastPosition;
 		lastPosition = actualPosition;
 		return ret;
 	}
 	
-	public Double evaluateRiskRevision(Point2D toEval, double heading) {
+	public Double evaluateRiskRevision(Point2D toEval, double heading, int others) {
 		double danger = 0.0;
 		Set<String> keys = enemies.keySet();
 		Rectangle2D field = new Rectangle2D.Double(0.0, 0.0, w, h);
@@ -266,21 +272,18 @@ public class PositionFinder {
 		double angle = Utils.absBearing(actualPosition, toEval);
 		m.move(angle, heading);
 		double ux = m.turnRight / Costants.WIDTH_DANGER_SAME_DIRECTION;
-		danger += Math.pow(Math.E, - 0.5 * ux * ux);
+		danger += 0.01 * Math.pow(Math.E, - 0.5 * ux * ux);
 		
 		double ux_ = toEval.distance(field.getCenterX(), field.getCenterY()) / Costants.MIN_RISK_SAFE_DISTANCE_CENTER;
-		danger += Math.pow(Math.E, - 0.5 * ux_ * ux_);
+		danger += 0.01 * Math.pow(Math.E, - 0.5 * ux_ * ux_);
 		double enemyDanger = 1;
 		for (String key : keys) {
 			Enemy e = enemies.get(key);
 			//danger += 0.1 / toEval.distance(field.getCenterX(), field.getCenterY());
-			danger = (1 + danger)/toEval.distanceSq(e.getPosition());
+			danger += (20 - others)/toEval.distance(e.getPosition());
 			//danger += 1 / toEval.distance(actualPosition);
 		}
-		
-		
 
-		
 		return danger;
 	}
 	
