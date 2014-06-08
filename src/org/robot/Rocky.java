@@ -58,8 +58,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 	// on paint meele
 	private Point2D m_nextRadarPoint;
 	
-	private Map<String, VirtualGun> m_hot;
-	private Map<String, VirtualGun> m_circ;
+	private static Map<String, VirtualGun> m_hot;
+	private static Map<String, VirtualGun> m_circ;
 
 
 	private Radar o_radar;
@@ -93,8 +93,11 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 		m_waves = new WaveSurfer(this);
 		m_storages = new HashMap<String, VisitCountStorage>();
-		m_hot = new HashMap<>();
-		m_circ = new HashMap<>();
+
+		if (m_hot == null)
+			m_hot = new HashMap<>();
+		if (m_circ == null)
+			m_circ = new HashMap<>();
 
 		//OvO
 		o_radar = new Radar(this);
