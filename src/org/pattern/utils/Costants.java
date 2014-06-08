@@ -29,5 +29,5 @@ public class Costants {
 	public static final double ENERGY_RATIO_GO_NEAR = 3;
 	public static final double MAX_DISTANCE = 150;
 	public static final double ENERGY_RATIO_DONT_FIRE = 3.0;
-	public static final double DISTANCE_DONT_FIRE = 550;
+	public static final double DISTANCE_DONT_FIRE = 600;
 }

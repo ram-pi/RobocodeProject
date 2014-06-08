@@ -13,6 +13,7 @@ import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
+import org.pattern.shooting.Bullet;
 import org.robot.Enemy;
 import org.robot.Rocky;
 
@@ -263,7 +264,21 @@ public class Utils {
 		return ret;
 	}
 	
+	public static double getDanger(double gf, double absMae, VisitCountStorageDensity storage, GBulletFiredEvent wave) {
+
 	
+		double botWidth = Math.toDegrees(36/wave.getFiringPosition().distance(wave.getTargetPosition()));
+		double angle = gf * absMae;
+		double d = 0;
+		for (Double _gf : storage.getStorage()) {
+			double thisAngle =  _gf * absMae;
+			
+			double ux = (angle - thisAngle) / botWidth;
+			d += Math.pow(Math.E, - 0.5 * ux * ux);
+		}
+		
+		return d;
+	}
 	public static double getDanger(double gf, double absMae, VisitCountStorageSegmented storage, GBulletFiredEvent wave) {
 		List<BitSet> Allnearest = storage.getNearest(wave.getSnapshot());
 		
@@ -339,6 +354,52 @@ public class Utils {
 	}
 
 	
+	public static double getFiringAngle(VisitCountStorageDensity storage, Point2D myPosition, Enemy enemy, double firePower, BitSet snapshot, AdvancedRobot robot) {
+		double botWidth = Math.toDegrees(36/enemy.getDistance());
+		double maxDensity = Double.MIN_VALUE;
+		double ret = 0;
+		double mae;
+		for (Double _gf: storage.getStorage()) {
+			double d = 0;
+			
+			
+			int cw = 0;
+			if (_gf > 0) {
+				cw = 1;
+			} else {
+				cw = -1;
+			}
+			mae = Math.abs(getMAE(myPosition, enemy.getPosition(), enemy.getHeading(),
+					enemy.getVelocity(), 20 - firePower * 3, cw, robot));
+			double angle = _gf * mae;
+			
+			for(Double gf: storage.getStorage()) {
+				if (gf == _gf)
+					continue;
+				
+
+				if (_gf > 0) {
+					cw = 1;
+				} else {
+					cw = -1;
+				}
+				mae = Math.abs(getMAE(myPosition, enemy.getPosition(), enemy.getHeading(),
+						enemy.getVelocity(), 20 - firePower * 3, cw, robot));
+				double angle1 = _gf * mae;
+				
+				if (Math.abs(angle1 - angle) < botWidth) {
+					d++;
+				}
+			}
+			if (d > maxDensity)  {
+				maxDensity = d;
+				ret = angle;
+			}
+		}
+		return ret;
+	}
+
+	
 	public static double getFiringAngle(VisitCountStorageSegmented storage, Point2D myPosition, Enemy enemy, double firePower, BitSet snapshot, AdvancedRobot robot) {
 		
 
@@ -352,7 +413,7 @@ public class Utils {
 		}
 		
 		double botWidth = Math.toDegrees(36/enemy.getDistance());
-		double maxDensity = Double.MAX_VALUE;
+		double maxDensity = Double.MIN_VALUE;
 		double ret = 0;
 		double mae;
 		for (BitSet bs1 : nearest) {
@@ -387,7 +448,7 @@ public class Utils {
 					d++;
 				}
 			}
-			if (d < maxDensity)  {
+			if (d > maxDensity)  {
 				maxDensity = d;
 				ret = angle;
 			}
@@ -396,6 +457,18 @@ public class Utils {
 	}
 
 
+	public static double getCircularAngle(Point2D myPosition, Enemy e, double firePower){
+		double vel = 20 - 3 * firePower;
+
+		Projection proj = new Projection(e.getPosition(), e.getHeading(), e.getVelocity(), (int)Math.signum(e.getVelocity()), 0);
+		tickProjection t = proj.projectNextTick();
+		while (Math.abs(t.getPosition().distance(myPosition) - t.getTick() * vel) > Costants.GF_DIST_BULLET_HIT) {
+			t = proj.projectNextTick();
+		}
+		
+		return absBearing(myPosition, t.getPosition());
+	
+	}
 	
 	public static void setWaveMAE(GBulletFiredEvent wave, double heading,
 			double velocity, AdvancedRobot robot) {
