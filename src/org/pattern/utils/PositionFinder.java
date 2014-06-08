@@ -225,34 +225,59 @@ public class PositionFinder {
 		Double minimumRisk = Double.MAX_VALUE;
 		Point2D.Double myPos = new Point2D.Double(robot.getX(), robot.getY());
 		int i = 0;
+		((Rocky)robot).m_pointDebug.clear();
+		((Rocky)robot).m_pointRiskDebug.clear();
+		double maxRisk = Double.MIN_VALUE;
 		while (i < attempt 
 				&& !enemies.isEmpty()) {
 			i++;
-			Double randomDistance = e.getDistance()*0.8 + Math.random()*100;
-			randomDistance = Math.min(randomDistance, 100);
+			Double randomDistance = Math.min(e.getDistance()*0.8,100) + Math.random()*100;
+
 			Point2D.Double tmp = Utils.calcPoint(myPos, randomDistance, generateRandomAngle());
+			if (!inBattlefield(tmp))
+				continue;
 			//Double tmpEval = evaluateRisk(tmp);
-			Double tmpEval = evaluateRiskRevision(tmp);
-			if (tmpEval < minimumRisk && inBattlefield(tmp)) {
+			Double tmpEval = evaluateRiskRevision(tmp, robot.getHeading());
+
+			((Rocky)robot).m_pointDebug.add(tmp);
+			((Rocky)robot).m_pointRiskDebug.add(tmpEval);
+			if (tmpEval < minimumRisk) {
 				minimumRisk = tmpEval;
 				ret = tmp;
 			}
+			if (tmpEval > maxRisk) {
+				maxRisk = tmpEval;
+			}
 		}
+		((Rocky)robot).m_maxRiskDebug = maxRisk;
+		((Rocky)robot).m_minRiskDebug = minimumRisk;
+		robot.out.println("MaxRisk :" + maxRisk);
+		robot.out.println("MinRisk :" + minimumRisk);
 		lastLastPosition = lastPosition;
 		lastPosition = actualPosition;
 		return ret;
 	}
 	
-	public Double evaluateRiskRevision(Point2D toEval) {
+	public Double evaluateRiskRevision(Point2D toEval, double heading) {
 		double danger = 0.0;
 		Set<String> keys = enemies.keySet();
 		Rectangle2D field = new Rectangle2D.Double(0.0, 0.0, w, h);
 		for (String key : keys) {
 			Enemy e = enemies.get(key);
-			danger += 0.1 / toEval.distance(field.getCenterX(), field.getCenterY());
-			danger += 1 / toEval.distance(e.getPosition());
-			danger += 1 / toEval.distance(actualPosition);
+			//danger += 0.1 / toEval.distance(field.getCenterX(), field.getCenterY());
+			danger += 1 / toEval.distanceSq(e.getPosition());
+			//danger += 1 / toEval.distance(actualPosition);
 		}
+		
+		Move m = new Move(robot);
+		double angle = Utils.absBearing(actualPosition, toEval);
+		m.move(angle, heading);
+		double ux = m.turnRight / Costants.WIDTH_DANGER_SAME_DIRECTION;
+		//danger += Math.pow(Math.E, - 0.5 * ux * ux);
+		
+		double ux_ = toEval.distance(field.getCenterX(), field.getCenterY()) / Costants.MIN_RISK_SAFE_DISTANCE_CENTER;
+		//danger += Math.pow(Math.E, - 0.5 * ux_ * ux_);
+		
 		return danger;
 	}
 	

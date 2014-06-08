@@ -83,6 +83,9 @@ public class Rocky extends AdvancedRobot implements Observer{
 	private int o_ahead;
 	private double o_maxDistance;
 	private PositionFinder positionFinder;
+	public List<Point2D> m_pointDebug = new LinkedList<>();
+	public List<Double> m_pointRiskDebug = new LinkedList<>();
+	public double m_minRiskDebug, m_maxRiskDebug;
 
 	public Rocky() {
 		//meele
@@ -363,6 +366,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 			GBulletFiredEvent wave = o_waves.getNearestWave();
 			Point2D myPos = new Point2D.Double(getX(), getY());
 
+			if (wave == null) 
+				return;
 			// TODO we lost a wave
 			if (Math.abs(myPos.distance(wave.getFiringPosition())
 					- (getTime() - wave.getFiringTime()) * wave.getVelocity()) > 50)
@@ -887,6 +892,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 	public void onPaint(Graphics2D g) {
 		boolean meele = getOthers() > 1;
 		if (meele) {
+			Color c = g.getColor();
 			g.setColor(Color.red);
 			if (m_nextRadarPoint != null)
 				g.drawLine((int) getX(), (int) getY(),
@@ -917,6 +923,18 @@ public class Rocky extends AdvancedRobot implements Observer{
 				drawVirtualGun(m_circ.get(m_en.getName()), g);
 				drawVirtualGun(m_hot.get(m_en.getName()), g);
 			}
+			
+			
+			for (Point2D p : m_pointDebug) {
+				double risk = m_pointRiskDebug.get(m_pointDebug.indexOf(p));
+				double color = (risk / m_maxRiskDebug) * 255.;
+				if  (risk / m_maxRiskDebug > 1)
+					out.println("ou");
+				g.setColor(new Color((int)color, 30, 0));
+				drawPoint(p, 5, g);
+			}
+			
+			g.setColor(c);
 
 
 		} else {

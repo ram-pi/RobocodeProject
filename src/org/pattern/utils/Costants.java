@@ -32,4 +32,6 @@ public class Costants {
 	public static final double ENERGY_RATIO_DONT_FIRE = 3.0;
 	public static final double DISTANCE_DONT_FIRE = 600;
 	public static final double BITSET_MAX_DISTANCE = Math.sqrt(800*800+600*600);
+	public static final double WIDTH_DANGER_SAME_DIRECTION = 10;
+	public static final double MIN_RISK_SAFE_DISTANCE_CENTER = 200;
 }
