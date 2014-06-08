@@ -4,7 +4,8 @@ public class Costants {
 
 	public static final double SURFING_REMOVE_WAVE_OFFSET = 50;
 	public static int SEG_BITS_VARIABLE = 64;
-	public static int KNN_K = 10;
+	public static int GF_KNN_K = 10;
+	public static int SURFING_KNN_K = 10;
 	public static int NUM_BINS = 43;
 	public static int SMOOTH_BINS = 4;
 	public static int POINT_MIN_DIST_ENEMY = 40;
@@ -31,4 +32,5 @@ public class Costants {
 	public static final double MAX_DISTANCE = 150;
 	public static final double ENERGY_RATIO_DONT_FIRE = 3.0;
 	public static final double DISTANCE_DONT_FIRE = 600;
+	public static final double BITSET_MAX_DISTANCE = Math.sqrt(800*800+600*600);
 }
