@@ -13,6 +13,7 @@ import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
 import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
+import org.pattern.shooting.Bullet;
 import org.robot.Enemy;
 import org.robot.Rocky;
 
@@ -456,6 +457,18 @@ public class Utils {
 	}
 
 
+	public static double getCircularAngle(Point2D myPosition, Enemy e, double firePower){
+		double vel = 20 - 3 * firePower;
+
+		Projection proj = new Projection(e.getPosition(), e.getHeading(), e.getVelocity(), (int)Math.signum(e.getVelocity()), 0);
+		tickProjection t = proj.projectNextTick();
+		while (Math.abs(t.getPosition().distance(myPosition) - t.getTick() * vel) > Costants.GF_DIST_BULLET_HIT) {
+			t = proj.projectNextTick();
+		}
+		
+		return absBearing(myPosition, t.getPosition());
+	
+	}
 	
 	public static void setWaveMAE(GBulletFiredEvent wave, double heading,
 			double velocity, AdvancedRobot robot) {

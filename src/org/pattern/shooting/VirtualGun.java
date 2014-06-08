@@ -5,7 +5,11 @@ import java.awt.geom.Point2D;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.pattern.utils.Costants;
+import org.pattern.utils.Utils;
 import org.robot.Enemy;
+
+import com.sun.org.apache.bcel.internal.Constants;
 
 import robocode.AdvancedRobot;
 
@@ -15,11 +19,64 @@ public class VirtualGun {
 	private List<Bullet> bullets;
 	private AdvancedRobot robot;
 	private Enemy enemy;
+	int score = 0;
+	private int passed = 0;
 	
+	public int getScore() {
+		return score;
+	}
+
+	public void setScore(int score) {
+		this.score = score;
+	}
+
+	public int getPassed() {
+		return passed;
+	}
+
+	public void setPassed(int passed) {
+		this.passed = passed;
+	}
+
 	public VirtualGun(AdvancedRobot robot, Enemy enemy) {
 		this.robot = robot;
 		this.enemy = enemy;
 		this.bullets = new LinkedList<>();
+	}
+	
+	public void fire(double absBearing, double firePower) {
+		Bullet b = new Bullet();
+		Point2D myPosition = new Point2D.Double(robot.getX(), robot.getY());
+		b.setActualPosition(myPosition);
+		b.setFrom(myPosition);
+		b.setPower(firePower);
+		b.setBearing(absBearing);
+		b.setTime(robot.getTime());
+		bullets.add(b);
+	}
+	
+	public void checkEnemy(Enemy e) {
+		double vel;
+		List<Bullet> toRemove = new LinkedList<>();
+		for (Bullet b : bullets) {
+			vel = 20 - 3 * b.getPower();
+			if (Math.abs(e.getPosition().distance(b.getFrom()) - (robot.getTime() - b.getTime()) * vel) < Costants.GF_DIST_BULLET_HIT) {
+				double botWidth = Math.toDegrees(36/b.getFrom().distance(e.getPosition()));
+				double perfectAngle = Utils.absBearing(b.getFrom(), e.getPosition());
+				if (Math.abs(perfectAngle - b.getBearing()) < botWidth/2){
+					score++;
+				} else {
+					passed++;
+				}
+				
+				
+				toRemove.add(b);
+			}
+			if (e.getPosition().distance(b.getFrom()) < (robot.getTime() - b.getTime()) * vel) {
+				toRemove.add(b);
+			}
+		}
+		bullets.removeAll(toRemove);
 	}
 	
 	public void update() {
@@ -29,7 +86,8 @@ public class VirtualGun {
 			double spaceWalked = (double) timeElapsed * bulletSpeed;
 			double startX = b.getActualPosition().getX();
 			double startY = b.getActualPosition().getY();
-			double angle = ShootingUtils.findAngle(b.getTargetPosition().getX(), b.getTargetPosition().getY(), startX, startY);
+//			double angle = ShootingUtils.findAngle(b.getTargetPosition().getX(), b.getTargetPosition().getY(), startX, startY);
+			double angle = b.getBearing();
 			/*
 			startX = startX + (spaceWalked*(Math.sin(Math.toRadians(b.getBearing()))));
 			startY = startY + (spaceWalked*(Math.cos(Math.toRadians(b.getBearing()))));
