@@ -197,7 +197,7 @@ public class Projection {
 		init();
 	}
 	public Projection(Point2D position, double heading, double velocity, int wantedDirection, double bearingOffset) {
-		Costruct(position, heading, velocity, wantedDirection, bearingOffset, Double.POSITIVE_INFINITY);
+		Costruct(position, heading, velocity, wantedDirection, bearingOffset, wantedDirection * Double.POSITIVE_INFINITY);
 	}
 	
 	public void setTurningAdjustment(double angle) {
