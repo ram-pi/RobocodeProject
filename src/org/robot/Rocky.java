@@ -528,6 +528,13 @@ public class Rocky extends AdvancedRobot implements Observer{
 			double bearing = absBearing + angle;
 			setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(bearing
 					- getGunHeading()));
+			
+			if (e.getEnergy() == 0) {
+				double hotAmt = org.pattern.utils.Utils.absBearing(myPosition, m_en.getPosition());
+				hotAmt = Utils.normalRelativeAngleDegrees(angle - getGunHeading());
+				turnGunRight(angle);
+				fire(0.2);
+			}
 
 			if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < Costants.GUN_MAX_DISPLACEMENT_DEGREE && 
 					e.getEnergy()/getEnergy() < Costants.ENERGY_RATIO_DONT_FIRE && e.getDistance() < Costants.DISTANCE_DONT_FIRE) {
@@ -605,8 +612,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 		VirtualGun vgCirc = m_circ.get(m_en.getName());
 		/* Perform head on target for gun movement */
 
-		double hotAmt = Utils.normalAbsoluteAngleDegrees(Math.toDegrees((getHeadingRadians() + m_en.getBearingRadians() - getGunHeadingRadians())));
-		hotAmt = org.pattern.utils.Utils.absBearing(myPos, m_en.getPosition());
+		
+		double hotAmt = org.pattern.utils.Utils.absBearing(myPos, m_en.getPosition());
 		double circAmt = org.pattern.utils.Utils.getCircularAngle(myPos, m_en, firePower);
 
 
