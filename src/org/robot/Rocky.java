@@ -25,12 +25,9 @@ import org.pattern.radar.Radar;
 import org.pattern.shooting.Bullet;
 import org.pattern.shooting.VirtualGun;
 import org.pattern.utils.Costants;
-import org.pattern.utils.EnemyInfo;
 import org.pattern.utils.PositionFinder;
 import org.pattern.utils.VisitCountStorage;
 import org.pattern.utils.VisitCountStorageSegmented;
-
-import com.sun.org.apache.bcel.internal.Constants;
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitBulletEvent;
@@ -51,6 +48,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 	public WaveSurfer m_waves;
 	private boolean m_wallSmoothing;
 	public Map<String, VisitCountStorage> m_storages;
+	
+	private List<Enemy> shootedBy;
 
 	private Hashtable<String, Enemy> m_enemies;
 	private Move m_move;
@@ -88,6 +87,9 @@ public class Rocky extends AdvancedRobot implements Observer{
 	public double m_minRiskDebug, m_maxRiskDebug;
 
 	public Rocky() {
+		
+		shootedBy = new LinkedList<>();
+		
 		//meele
 		m_en = new Enemy();
 		m_enemies = new Hashtable<String, Enemy>();
@@ -273,21 +275,21 @@ public class Rocky extends AdvancedRobot implements Observer{
 				Costants.RADAR_STICK_LENGTH, Math.toRadians(nextLeftHeading));
 		Point2D actualRadarPoint = org.pattern.utils.Utils.calcPoint(pos,
 				Costants.RADAR_STICK_LENGTH, Math.toRadians(getRadarHeading()));
-
+		
 		if (m_radarGoingRight
 				&& !org.pattern.utils.Utils.pointInBattlefield(this,
 						actualRadarPoint)
 						&& !org.pattern.utils.Utils.pointInBattlefield(this,
 								nextRadarPointRight)) {
-			System.out.println("Safe rotation of 120 degrees.");
-			setTurnRadarRight(120);
+			System.out.println("Safe rotation.");
+			setTurnRadarRight(Costants.RADAR_SAFETY_ROTATION);
 		} else if (!m_radarGoingRight
 				&& !org.pattern.utils.Utils.pointInBattlefield(this,
 						actualRadarPoint)
 						&& !org.pattern.utils.Utils.pointInBattlefield(this,
 								nextRadarPointLeft)) {
-			System.out.println("Safe rotation of 120 degrees.");
-			setTurnRadarLeft(120);
+			System.out.println("Safe rotation.");
+			setTurnRadarLeft(Costants.RADAR_SAFETY_ROTATION);
 		} else if (m_radarGoingRight) {
 			setTurnRadarRight(45);
 			m_nextRadarPoint = nextRadarPointRight;
@@ -345,8 +347,12 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 	@Override
 	public void onHitByBullet(HitByBulletEvent event) {
+		Enemy en = m_enemies.get(event.getName());
+		shootedBy.add(en);
+		
 		boolean meele = getOthers() > 1;
 		if (meele) {
+			
 			GBulletFiredEvent wave = m_waves.getNearestWave();
 			Point2D myPos = new Point2D.Double(getX(), getY());
 
@@ -561,13 +567,36 @@ public class Rocky extends AdvancedRobot implements Observer{
 		o_radar.consumeHitAnotherRobotEvent(event);
 	}
 
+	public Enemy findAsshole() {
+		int max = 0;
+		Enemy asshole = null;
+		for (String name : m_enemies.keySet()) {
+			Enemy e1 = m_enemies.get(name);
+			int countTmp = 0;
+			for (Enemy e2 : shootedBy) {
+				if (e1 == e2) {
+					countTmp++;
+				}
+			}
+			if (countTmp > max) {
+				max = countTmp;
+				asshole = e1;
+			}
+		}
+		
+		if (max > 3)
+			return asshole;
+		return null;
+	}
 
 	private void doMeeleShooting() {
 		//PositionFinder p = new PositionFinder(m_enemies, this);
 		Point2D myPos  = new Point2D.Double(getX(), getY());
 		positionFinder.setEnemies(m_enemies);
 		positionFinder.setRobot(this);
-		m_en = positionFinder.findNearest();
+		m_en = findAsshole();
+		if (m_en == null)
+			m_en = positionFinder.findNearest();
 		if (m_en == null)
 			return;
 
