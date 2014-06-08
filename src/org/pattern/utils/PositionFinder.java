@@ -6,7 +6,7 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-
+import java.util.Set;
 
 import org.pattern.movement.Move;
 import org.pattern.movement.Projection;
@@ -26,7 +26,7 @@ public class PositionFinder {
 	private Double w;
 	private Double h;
 	private Double maxDistance;
-	private Point2D lastPosition, lastLastPosition;
+	private Point2D lastPosition, lastLastPosition, actualPosition;	
 	
 	public PositionFinder(Hashtable<String, Enemy> enemies, AdvancedRobot robot) {
 		this.enemies = enemies;
@@ -68,27 +68,29 @@ public class PositionFinder {
 		Double eval = 0.0;
 		for (String key : enemies.keySet()) {
 			Enemy e = enemies.get(key);
-			Double distance = p.distance(e.getPosition());
-			eval += e.getEnergy() / Math.pow(distance, 2);
+			//eval += e.getEnergy() / Math.pow(distance, 2);
+			Double enemyfactor = Math.cos(Utils.calcAngle(actualPosition, p)-Utils.calcAngle(e.getPosition(), p));
+			enemyfactor = 1 + Math.abs(enemyfactor)/p.distanceSq(e.getPosition());
+			eval += enemyfactor;
 		}
 		
 		//eval += minimumDistanceFromCorner(p);
 		eval += minimumDistanceFromFrame(p)/maxDistance;
-		eval += 1/p.distance(lastPosition);
+//		eval += 1/p.distance(lastPosition);
 //		eval += 1/p.distance(lastLastPosition);
-		if (isOnTheSameRect(p))
-			eval += eval*1.2;
-		
-		List<GBulletFiredEvent> waves = null;
-		if (robot instanceof ScannerRobot) {
-			waves = ((ScannerRobot)robot).waves.getWaves();
-		}
-		else if (robot instanceof Rocky) {
-			waves = ((Rocky)robot).m_waves.getWaves();
-		}
-		for (GBulletFiredEvent wave : waves) {
-			eval += riskFromWave(wave, p);
-		}
+//		if (isOnTheSameRect(p))
+//			eval += eval*1.2;
+//		
+//		List<GBulletFiredEvent> waves = null;
+//		if (robot instanceof ScannerRobot) {
+//			waves = ((ScannerRobot)robot).waves.getWaves();
+//		}
+//		else if (robot instanceof Rocky) {
+//			waves = ((Rocky)robot).m_waves.getWaves();
+//		}
+//		for (GBulletFiredEvent wave : waves) {
+//			eval += riskFromWave(wave, p);
+//		}
 		return eval;
 	}
 	
@@ -229,15 +231,29 @@ public class PositionFinder {
 			Double randomDistance = e.getDistance()*0.8 + Math.random()*100;
 			randomDistance = Math.min(randomDistance, 100);
 			Point2D.Double tmp = Utils.calcPoint(myPos, randomDistance, generateRandomAngle());
-			Double tmpEval = evaluateRisk(tmp);
+			//Double tmpEval = evaluateRisk(tmp);
+			Double tmpEval = evaluateRiskRevision(tmp);
 			if (tmpEval < minimumRisk && inBattlefield(tmp)) {
 				minimumRisk = tmpEval;
 				ret = tmp;
 			}
 		}
 		lastLastPosition = lastPosition;
-		lastPosition = new Point2D.Double(robot.getX(), robot.getY());
+		lastPosition = actualPosition;
 		return ret;
+	}
+	
+	public Double evaluateRiskRevision(Point2D toEval) {
+		double danger = 0.0;
+		Set<String> keys = enemies.keySet();
+		Rectangle2D field = new Rectangle2D.Double(0.0, 0.0, w, h);
+		for (String key : keys) {
+			Enemy e = enemies.get(key);
+			danger += 0.1 / toEval.distance(field.getCenterX(), field.getCenterY());
+			danger += 1 / toEval.distance(e.getPosition());
+			danger += 1 / toEval.distance(actualPosition);
+		}
+		return danger;
 	}
 	
 	
@@ -300,6 +316,7 @@ public class PositionFinder {
 		this.h  = robot.getBattleFieldHeight();
 		this.maxDistance = new Point2D.Double(0, 0).distance(new Point2D.Double(w, h));
 		this.lastPosition = this.lastLastPosition = new Point2D.Double(robot.getX(), robot.getY());
+		this.actualPosition = new Point2D.Double(robot.getX(), robot.getY());
 	}
 	
 	public void setBattlefield(Double w, Double h) {

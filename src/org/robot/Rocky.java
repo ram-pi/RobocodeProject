@@ -54,18 +54,18 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 	// on paint meele
 	private Point2D m_nextRadarPoint;
-	
-	
+
+
 	private Radar o_radar;
 	private WaveSurfer o_waves;
 	List<GBulletFiredEvent> o_firedBullets;
 	private static VisitCountStorageSegmented o_riskStorage;
 	private static VisitCountStorageSegmented o_gfStorage;
-	
+
 	Point2D o_toGo = null;
 	boolean o_pointsSurfing = false;
 	boolean o_orbitSurfing = true;
-	
+
 	// on paint ovo
 	public List<Shape> o_toDraw;
 	private int o_ahead;
@@ -82,19 +82,19 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 		m_waves = new WaveSurfer(this);
 		m_storages = new HashMap<String, VisitCountStorage>();
-		
+
 		//OvO
 		o_radar = new Radar(this);
 		o_radar.addObserver(this);
 		o_waves = new WaveSurfer(this);
 		o_firedBullets = new LinkedList<>();
 		if (o_gfStorage == null)
-				o_gfStorage = new VisitCountStorageSegmented();
+			o_gfStorage = new VisitCountStorageSegmented();
 		if (o_riskStorage == null)
 			o_riskStorage = new VisitCountStorageSegmented();
-		
+
 		o_toDraw = new LinkedList<>();
-		
+
 		positionFinder = new PositionFinder();
 	}
 	@Override
@@ -105,14 +105,14 @@ public class Rocky extends AdvancedRobot implements Observer{
 		setAdjustRadarForRobotTurn(true);
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForRobotTurn(true);
-		
+
 		o_maxDistance = Math.sqrt(getBattleFieldWidth() * getBattleFieldWidth()
 				+ getBattleFieldHeight() * getBattleFieldHeight());
-		
+
 		if (meele) {
 			m_move = new Move(this);
 		} 
-			
+
 
 		do {
 			meele = getOthers() > 1;
@@ -135,8 +135,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 	}
 
 	private void doOvoShotting() {
-		
-		
+
+
 	}
 	private void doOvoMovement() {
 		double _ahead = 0;
@@ -166,7 +166,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 			m.smooth(myPosition, getHeading(), m.turnRight, m.ahead);
 
 		}
-		
+
 		if (o_toGo != null && o_pointsSurfing) {
 			double togoAngle = org.pattern.utils.Utils.absBearing(new Point2D.Double(getX(), getY()), o_toGo);
 			m.move(togoAngle, getHeading());
@@ -174,37 +174,37 @@ public class Rocky extends AdvancedRobot implements Observer{
 					new Point2D.Double(getX(), getY()), getHeading(),
 					getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
 			tickProjection t = proj.projectNextTick();
-//			if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead)) 
-//				toGo = null;
+			//			if (m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead)) 
+			//				toGo = null;
 			m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m.ahead);
 		}
-		
+
 		boolean drawTogo = false;
 		if (drawTogo && o_toGo != null) {
 			Rectangle2D rect = new Rectangle2D.Double(o_toGo.getX()-2, o_toGo.getY()-2, 4, 4);
 			o_toDraw.add(rect);
 		}
 
-//		m.move(surfAngle, getHeading());
-//		Projection proj = new Projection(
-//				new Point2D.Double(getX(), getY()), getHeading(),
-//				getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
-//		tickProjection t = proj.projectNextTick();
-//
-//		m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
-//				m.ahead);
-//
+		//		m.move(surfAngle, getHeading());
+		//		Projection proj = new Projection(
+		//				new Point2D.Double(getX(), getY()), getHeading(),
+		//				getVelocity(), m.ahead, getTurnRemaining() + m.turnRight);
+		//		tickProjection t = proj.projectNextTick();
+		//
+		//		m.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(),
+		//				m.ahead);
+		//
 		o_ahead = m.ahead;
 		_turnRight = m.turnRight;
 		_ahead = o_ahead * 100;
 
 		setAhead(_ahead);
 		setTurnRight(_turnRight);
-		
+
 	}
 	private void doOvOscan() {
 		o_radar.doScan();
-		
+
 	}
 	private void doMeeleScan() {
 
@@ -221,15 +221,15 @@ public class Rocky extends AdvancedRobot implements Observer{
 		if (m_radarGoingRight
 				&& !org.pattern.utils.Utils.pointInBattlefield(this,
 						actualRadarPoint)
-				&& !org.pattern.utils.Utils.pointInBattlefield(this,
-						nextRadarPointRight)) {
+						&& !org.pattern.utils.Utils.pointInBattlefield(this,
+								nextRadarPointRight)) {
 			System.out.println("Safe rotation of 120 degrees.");
 			setTurnRadarRight(120);
 		} else if (!m_radarGoingRight
 				&& !org.pattern.utils.Utils.pointInBattlefield(this,
 						actualRadarPoint)
-				&& !org.pattern.utils.Utils.pointInBattlefield(this,
-						nextRadarPointLeft)) {
+						&& !org.pattern.utils.Utils.pointInBattlefield(this,
+								nextRadarPointLeft)) {
 			System.out.println("Safe rotation of 120 degrees.");
 			setTurnRadarLeft(120);
 		} else if (m_radarGoingRight) {
@@ -264,10 +264,10 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 	private void doMeeleMovement() {
 		Point2D actualPosition = new Point2D.Double(getX(), getY());
-		
+
 		if(m_nextPosition==null)
 			m_nextPosition=actualPosition;
-		
+
 		if (m_corner) {
 			m_goToCorner();
 			out.println("corner");
@@ -321,7 +321,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 			double gf = firingOffset > 0 ? firingOffset / wave.getMaxMAE()
 					: -firingOffset / wave.getMinMAE();
 
-			
+
 			o_riskStorage.visit(wave.getSnapshot(),gf);
 		}
 
@@ -388,10 +388,10 @@ public class Rocky extends AdvancedRobot implements Observer{
 			return;
 		}
 	}
-	
+
 	@Override
 	public void onScannedRobot(ScannedRobotEvent event) {
-		
+
 		boolean meele = getOthers() > 1;
 		if (meele) {
 			Enemy enemy = m_enemies.get(event.getName());
@@ -401,34 +401,34 @@ public class Rocky extends AdvancedRobot implements Observer{
 				m_enemies.put(enemy.getName(), enemy);
 				m_storages.put(enemy.getName(), new VisitCountStorage());
 			}
-			
+
 			if (getTime() - enemy.getLastUpdated() < Costants.TIME_THRESHOLD && 
 					(enemy.getEnergy() - event.getEnergy()) > 0. &&
 					(enemy.getEnergy() - event.getEnergy()) < 3.1) {
-				
-					GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
-					gBulletFiredEvent.setFiringRobot(enemy);
-					gBulletFiredEvent.setEnergy(enemy.getEnergy() - event.getEnergy());
-					gBulletFiredEvent.setVelocity(20 - 3 * (enemy.getEnergy() - event.getEnergy()));
-					gBulletFiredEvent.setFiringTime(getTime()-1);
-					gBulletFiredEvent.setFiringPosition(enemy.getPosition());//TODO this or the updated one?
-					gBulletFiredEvent.setTargetPosition(new Point2D.Double(getX(), getY()));
-					org.pattern.utils.Utils.setWaveMAE(gBulletFiredEvent, getHeading(), getVelocity(), this);
-					m_waves.addWave(gBulletFiredEvent);
-	
+
+				GBulletFiredEvent gBulletFiredEvent = new GBulletFiredEvent();
+				gBulletFiredEvent.setFiringRobot(enemy);
+				gBulletFiredEvent.setEnergy(enemy.getEnergy() - event.getEnergy());
+				gBulletFiredEvent.setVelocity(20 - 3 * (enemy.getEnergy() - event.getEnergy()));
+				gBulletFiredEvent.setFiringTime(getTime()-1);
+				gBulletFiredEvent.setFiringPosition(enemy.getPosition());//TODO this or the updated one?
+				gBulletFiredEvent.setTargetPosition(new Point2D.Double(getX(), getY()));
+				org.pattern.utils.Utils.setWaveMAE(gBulletFiredEvent, getHeading(), getVelocity(), this);
+				m_waves.addWave(gBulletFiredEvent);
+
 			}
-		
+
 
 			enemy.updateEnemy(event, this);
 			m_enemies.put(enemy.getName(), enemy);
-			
-		//doShooting(); 
+
+			//doShooting(); 
 		} else {
 			o_radar.consumeScannedRobotEvent(event);
 
 			Enemy e = new Enemy(event, this);
 
-			
+
 			double distance = event.getDistance();
 
 			double firePower = 0;
@@ -441,22 +441,22 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 			BitSet snapshot = org.pattern.utils.Utils.getSnapshot(this, e);
 			double angle = org.pattern.utils.Utils.getFiringAngle(o_gfStorage, myPosition, e, firePower, snapshot, this);
-			
+
 			//In case of no segmentation
-//			               double bestGF = gfStorage.getPeak();
-//			               double mae = 0;
-//			               int cw = 0;
-//			               if (bestGF > 0) {
-//			                       cw = 1;
-//			               } else {
-//			                       cw = -1;
-//		               }
-//			
-//			               mae = Math.abs(getMAE(myPosition, e.getPosition(), e.getHeading(),
-//			                               e.getVelocity(), 20 - firePower * 3, cw));
-//			
-//			              double angle = bestGF * mae;
-		
+			//			               double bestGF = gfStorage.getPeak();
+			//			               double mae = 0;
+			//			               int cw = 0;
+			//			               if (bestGF > 0) {
+			//			                       cw = 1;
+			//			               } else {
+			//			                       cw = -1;
+			//		               }
+			//			
+			//			               mae = Math.abs(getMAE(myPosition, e.getPosition(), e.getHeading(),
+			//			                               e.getVelocity(), 20 - firePower * 3, cw));
+			//			
+			//			              double angle = bestGF * mae;
+
 			double absBearing = org.pattern.utils.Utils.absBearing(myPosition, e.getPosition());
 			double bearing = absBearing + angle;
 			setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(bearing
@@ -467,7 +467,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 				bullet.setEnergy(firePower);
 				bullet.setFiringPosition(myPosition); // TODO take the next tick
-														// position?
+				// position?
 				bullet.setFiringTime(getTime());
 				bullet.setTargetPosition(e.getPosition());
 				bullet.setVelocity(20 - firePower * 3);
@@ -495,11 +495,11 @@ public class Rocky extends AdvancedRobot implements Observer{
 		boolean meele = getOthers() > 1;
 		if (meele)
 			return;
-		
+
 		o_radar.consumeHitAnotherRobotEvent(event);
 	}
 
-	
+
 	private void doMeeleShooting() {
 		//PositionFinder p = new PositionFinder(m_enemies, this);
 		positionFinder.setEnemies(m_enemies);
@@ -514,7 +514,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 		setTurnGunRightRadians(turnGunAmt);
 
 		if (getGunHeat() == 0) {
-			double firePower = 3.0;
+			double firePower = 3 - (m_en.getDistance() / o_maxDistance) * 3;
 			fire(firePower);
 		}
 	}
@@ -543,22 +543,24 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 		Point2D actualPosition = new Point2D.Double(getX(), getY());
 		Move m = new Move(this);
-		
+
 		if (m_nextPosition != null) {
 			if(m_nextPosition.distance(actualPosition) < org.pattern.utils.Costants.POINT_MIN_DIST_NEXT_POINT){
 
-				PositionFinder p = new PositionFinder(m_enemies, this);
-				m_nextPosition = p.findBestPointInRangeWithRandomOffset(200);
-				
+				//PositionFinder p = new PositionFinder(m_enemies, this);
+				positionFinder.setEnemies(m_enemies);
+				positionFinder.setRobot(this);
+				m_nextPosition = positionFinder.findBestPointInRangeWithRandomOffset(200);
+
 				//debug 
 				for (GBulletFiredEvent wave : m_waves.getWaves()) {
-					p.riskFromWaveDebug(wave, m_nextPosition);
+					positionFinder.riskFromWaveDebug(wave, m_nextPosition);
 				}
 
 			}
 			double absBearing = org.pattern.utils.Utils.absBearing(actualPosition, m_nextPosition);
 			m.move(absBearing, getHeading());
-		
+
 			setTurnRight(m.turnRight);
 			if (getTurnRemaining() > 0.001) {
 				setAhead(0);
@@ -566,62 +568,62 @@ public class Rocky extends AdvancedRobot implements Observer{
 				setMaxVelocity(8.);
 				setAhead(m_nextPosition.distance(actualPosition)*m.ahead);
 			}
-			
-		
+
+
 			return;
 		}
-		
-//		Projection proj = new Projection(new Point2D.Double(getX(), getY()),
-//				getHeading(), getVelocity(), m_move.ahead, getTurnRemaining()+m_move.turnRight);
-//		tickProjection t = proj.projectNextTick();
-//
-//		/* Movement Settings, find the next position */
-//		double distanceToNewPosition = actualPosition.distance(m_nextPosition);
-//		if (m_move.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m_move.ahead)) {
-//			//out.println("smooth");
-//			m_wallSmoothing=true;
-//			double _turnRight=m_move.turnRight;
-//			int _ahead=100*m_move.ahead;
-//
-//			setAhead(_ahead);
-//			setTurnRight(_turnRight);
-//		}
-//		else if (distanceToNewPosition < 15 || m_wallSmoothing==true) {
-//			m_wallSmoothing=false;
-//			PositionFinder p = new PositionFinder(m_enemies, this);
-//			//Point2D.Double testPoint = p.findBestPoint(200);
-//			//double range = distanceToTarget*0.5;
-//			//Point2D.Double testPoint = p.findBestPointInRange(attempt, range);
-//			Point2D.Double testPoint =  p.findBestPointInRangeWithRandomOffset(200);
-//			m_nextPosition = testPoint;
-//			//out.println("point");
-//		}
-//
-//		/* Movement to nextPosition */
-//		else {
-//			Double angle = org.pattern.utils.Utils.calcAngle(m_nextPosition, actualPosition) - getHeadingRadians();
-//			Double direction = 1.0;
-//
-//			if (Math.cos(angle) < 0) {
-//				angle += Math.PI;
-//				direction = -1.0;
-//			}
-//			if(direction>0)
-//				m_move.ahead = 1;
-//			else
-//				m_move.ahead=-1;
-//			setAhead(distanceToNewPosition*direction);
-//			angle = Utils.normalRelativeAngle(angle);
-//			setTurnRightRadians(angle);
-//		}
+
+		//		Projection proj = new Projection(new Point2D.Double(getX(), getY()),
+		//				getHeading(), getVelocity(), m_move.ahead, getTurnRemaining()+m_move.turnRight);
+		//		tickProjection t = proj.projectNextTick();
+		//
+		//		/* Movement Settings, find the next position */
+		//		double distanceToNewPosition = actualPosition.distance(m_nextPosition);
+		//		if (m_move.smooth(t.getPosition(), t.getHeading(), proj.getWantedHeading(), m_move.ahead)) {
+		//			//out.println("smooth");
+		//			m_wallSmoothing=true;
+		//			double _turnRight=m_move.turnRight;
+		//			int _ahead=100*m_move.ahead;
+		//
+		//			setAhead(_ahead);
+		//			setTurnRight(_turnRight);
+		//		}
+		//		else if (distanceToNewPosition < 15 || m_wallSmoothing==true) {
+		//			m_wallSmoothing=false;
+		//			PositionFinder p = new PositionFinder(m_enemies, this);
+		//			//Point2D.Double testPoint = p.findBestPoint(200);
+		//			//double range = distanceToTarget*0.5;
+		//			//Point2D.Double testPoint = p.findBestPointInRange(attempt, range);
+		//			Point2D.Double testPoint =  p.findBestPointInRangeWithRandomOffset(200);
+		//			m_nextPosition = testPoint;
+		//			//out.println("point");
+		//		}
+		//
+		//		/* Movement to nextPosition */
+		//		else {
+		//			Double angle = org.pattern.utils.Utils.calcAngle(m_nextPosition, actualPosition) - getHeadingRadians();
+		//			Double direction = 1.0;
+		//
+		//			if (Math.cos(angle) < 0) {
+		//				angle += Math.PI;
+		//				direction = -1.0;
+		//			}
+		//			if(direction>0)
+		//				m_move.ahead = 1;
+		//			else
+		//				m_move.ahead=-1;
+		//			setAhead(distanceToNewPosition*direction);
+		//			angle = Utils.normalRelativeAngle(angle);
+		//			setTurnRightRadians(angle);
+		//		}
 	}
-	
+
 	private double o_orbitSurfing(GBulletFiredEvent wave, Enemy e) {
 		Move m = new Move(this);
 		Point2D myPos = new Point2D.Double(getX(), getY());
 		double angle, ret = 0;
 		double minRisk = Double.MAX_VALUE;
-		
+
 		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) { 
 			angle = org.pattern.utils.Utils.absBearingPerpendicular(myPos, e.getPosition(), orbitDirection);
 			m.move(angle, getHeading());
@@ -632,9 +634,9 @@ public class Rocky extends AdvancedRobot implements Observer{
 			}
 		}
 		return ret;
-		
+
 	}
-	
+
 	private double o_surfWave(GBulletFiredEvent nearestWave,
 			double bearingOffset, int direction) {
 		Point2D myPosition = new Point2D.Double(getX(), getY());
@@ -683,29 +685,29 @@ public class Rocky extends AdvancedRobot implements Observer{
 		Point2D enemyPosition = o_radar.getLockedEnemy() == null ? wave
 				.getFiringRobot().getPosition() : o_radar
 				.getLockedEnemy().getPosition();
-		Enemy e = o_radar.getLockedEnemy() == null ? wave
-				.getFiringRobot() : o_radar.getLockedEnemy();
-		double minRisk = Double.MAX_VALUE;
-		
-		for (Point2D p : org.pattern.utils.Utils.generatePoints(this, e)) {
-			if (p.distance(enemyPosition) < Costants.POINT_MIN_DIST_ENEMY) 
-				continue;
-			
-			double gf = org.pattern.utils.Utils.getProjectedGF(this, wave, p);
-			double mae = gf > 0 ? wave.getMaxMAE() : wave.getMinMAE();
-			double risk = org.pattern.utils.Utils.getDanger(gf, Math.abs(mae), o_riskStorage, wave);
+				Enemy e = o_radar.getLockedEnemy() == null ? wave
+						.getFiringRobot() : o_radar.getLockedEnemy();
+						double minRisk = Double.MAX_VALUE;
+
+						for (Point2D p : org.pattern.utils.Utils.generatePoints(this, e)) {
+							if (p.distance(enemyPosition) < Costants.POINT_MIN_DIST_ENEMY) 
+								continue;
+
+							double gf = org.pattern.utils.Utils.getProjectedGF(this, wave, p);
+							double mae = gf > 0 ? wave.getMaxMAE() : wave.getMinMAE();
+							double risk = org.pattern.utils.Utils.getDanger(gf, Math.abs(mae), o_riskStorage, wave);
 
 
-			if (risk < minRisk) {
-				minRisk = risk;
-				toGo = p;
-			}
-			
-		}
-		out.println("surfing at gf "+org.pattern.utils.Utils.getProjectedGF(this, wave, toGo));
-		return toGo;
+							if (risk < minRisk) {
+								minRisk = risk;
+								toGo = p;
+							}
+
+						}
+						out.println("surfing at gf "+org.pattern.utils.Utils.getProjectedGF(this, wave, toGo));
+						return toGo;
 	}
-	
+
 	private void o_updateFiredBullets() {
 		Enemy e = o_radar.getLockedEnemy();
 		List<GBulletFiredEvent> toRemove = new LinkedList<>();
@@ -755,7 +757,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 		}
 
 	}
-	
+
 	private double o_firingOffset(Point2D firingPosition, Point2D targetPosition,
 			Point2D hitPosition) {
 		double firingBearing = robocode.util.Utils
@@ -772,7 +774,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 		return robocode.util.Utils.normalRelativeAngleDegrees(ret);
 	}
-	
+
 	private void o_setWaveMAE(GBulletFiredEvent wave, double heading,
 			double velocity) {
 
@@ -787,7 +789,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 		wave.setMaxMAE(Math.max(mae[0], mae[1]));
 		return;
 	}
-	
+
 	@Override
 	public void update(Observable arg0, Object arg1) {
 		if (arg1 instanceof GBulletFiredEvent) {
@@ -802,42 +804,42 @@ public class Rocky extends AdvancedRobot implements Observer{
 	public void onPaint(Graphics2D g) {
 		boolean meele = getOthers() > 1;
 		if (meele) {
-		g.setColor(Color.red);
-		if (m_nextRadarPoint != null)
-			g.drawLine((int) getX(), (int) getY(),
-					(int) m_nextRadarPoint.getX(),
-					(int) m_nextRadarPoint.getY());
+			g.setColor(Color.red);
+			if (m_nextRadarPoint != null)
+				g.drawLine((int) getX(), (int) getY(),
+						(int) m_nextRadarPoint.getX(),
+						(int) m_nextRadarPoint.getY());
 
-		if (m_nextPosition != null)
-			g.fillRect((int) m_nextPosition.getX(),
-					(int) m_nextPosition.getY(), 10, 10);
+			if (m_nextPosition != null)
+				g.fillRect((int) m_nextPosition.getX(),
+						(int) m_nextPosition.getY(), 10, 10);
 
-		double heading = getVelocity() > 0.0 ? getHeading()
-				: getHeading() + 180;
-		double endX = getX() + Math.sin(Math.toRadians(heading))
-				* WallSmoothing.STICK_LENGTH;
-		double endY = getY() + Math.cos(Math.toRadians(heading))
-				* WallSmoothing.STICK_LENGTH;
-		g.drawLine((int) getX(), (int) getY(), (int) endX, (int) endY);
+			double heading = getVelocity() > 0.0 ? getHeading()
+					: getHeading() + 180;
+			double endX = getX() + Math.sin(Math.toRadians(heading))
+					* WallSmoothing.STICK_LENGTH;
+			double endY = getY() + Math.cos(Math.toRadians(heading))
+					* WallSmoothing.STICK_LENGTH;
+			g.drawLine((int) getX(), (int) getY(), (int) endX, (int) endY);
 
-		boolean drawWave = true;
-		if (drawWave) {
-			for (GBulletFiredEvent wave : m_waves.getWaves()) {
-				drawWaveAndMae(wave, g);
+			boolean drawWave = true;
+			if (drawWave) {
+				for (GBulletFiredEvent wave : m_waves.getWaves()) {
+					drawWaveAndMae(wave, g);
+				}
 			}
-		}
 		} else {
 			boolean paintWS = true;
 			boolean drawGF = true;
 			boolean drawWave = true;
-			
+
 			int STICK_LENGTH = (int)Costants.STICK_LENGTH;
 			int MINIMUM_RADIUS = (int)Costants.MINIMUM_RADIUS;
 			Color c = g.getColor();
 
-//			drawVisitCountStorageSegmented(gfStorage, g, 20, 20);
-//			drawVisitCountStorageSegmented(riskStorage, g, 400, 20);
-			
+			//			drawVisitCountStorageSegmented(gfStorage, g, 20, 20);
+			//			drawVisitCountStorageSegmented(riskStorage, g, 400, 20);
+
 			if (paintWS) {
 				g.setColor(Color.magenta);
 				Rectangle2D safeBF = new Rectangle2D.Double(18, 18,
@@ -862,8 +864,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 				g.drawLine((int) getX(), (int) getY(),
 						(int) (getX() + Math.sin(Math.toRadians(heading))
 								* STICK_LENGTH),
-						(int) (getY() + Math.cos(Math.toRadians(heading))
-								* STICK_LENGTH));
+								(int) (getY() + Math.cos(Math.toRadians(heading))
+										* STICK_LENGTH));
 
 				g.drawArc((int) (center1.getX() - MINIMUM_RADIUS),
 						(int) (center1.getY() - MINIMUM_RADIUS),
@@ -892,7 +894,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 
 		}
-		
+
 		Color c = g.getColor();
 		g.setColor(Color.BLUE);
 		for (Shape s : o_toDraw) {
@@ -902,7 +904,7 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 		o_toDraw.clear();
 
-		
+
 	}
 
 	private void drawWaveAndMae(GBulletFiredEvent wave, Graphics2D g) {
@@ -922,23 +924,23 @@ public class Rocky extends AdvancedRobot implements Observer{
 		// //draw MAE
 		g.drawLine((int) wave.getFiringPosition().getX(), (int) wave
 				.getFiringPosition().getY(), (int) (wave.getTargetPosition()
-				.getX()), (int) (wave.getTargetPosition().getY()));
+						.getX()), (int) (wave.getTargetPosition().getY()));
 
 		g.drawLine(
 				(int) wave.getFiringPosition().getX(),
 				(int) wave.getFiringPosition().getY(),
 				(int) (wave.getFiringPosition().getX() + Math.sin(Math
 						.toRadians(absBearing + wave.getMaxMAE())) * maeLength),
-				(int) (wave.getFiringPosition().getY() + Math.cos(Math
-						.toRadians(absBearing + wave.getMaxMAE())) * maeLength));
+						(int) (wave.getFiringPosition().getY() + Math.cos(Math
+								.toRadians(absBearing + wave.getMaxMAE())) * maeLength));
 
 		g.drawLine(
 				(int) wave.getFiringPosition().getX(),
 				(int) wave.getFiringPosition().getY(),
 				(int) (wave.getFiringPosition().getX() + Math.sin(Math
 						.toRadians(absBearing + wave.getMinMAE())) * maeLength),
-				(int) (wave.getFiringPosition().getY() + Math.cos(Math
-						.toRadians(absBearing + wave.getMinMAE())) * maeLength));
+						(int) (wave.getFiringPosition().getY() + Math.cos(Math
+								.toRadians(absBearing + wave.getMinMAE())) * maeLength));
 	}
 
 	private void drawPoint(Point2D point, int size, Graphics2D g) {
