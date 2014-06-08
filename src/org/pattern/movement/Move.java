@@ -3,6 +3,7 @@ package org.pattern.movement;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
+import org.pattern.movement.Projection.tickProjection;
 import org.pattern.utils.Costants;
 
 import robocode.AdvancedRobot;
@@ -10,11 +11,12 @@ import robocode.AdvancedRobot;
 public class Move {
 	public int ahead;
 	public double turnRight;
-	
+	public AdvancedRobot robot;
 	private Rectangle2D safeBF;
 
 	
 	public Move(AdvancedRobot robot) {
+		this.robot = robot;
 		safeBF = new Rectangle2D.Double(18, 18,
 				robot.getBattleFieldWidth() - 36, robot.getBattleFieldHeight() - 36);
 	}
@@ -70,9 +72,12 @@ public class Move {
 	}
 	
 	private boolean stickCollide(Point2D p, Double heading) {
-		Double endX = p.getX() + Math.sin(Math.toRadians(heading))
+		Projection proj = new Projection(p, heading, robot.getVelocity(), ahead, heading);
+		tickProjection t = proj.projectNextTick();
+		
+		Double endX = t.getPosition().getX() + Math.sin(Math.toRadians(heading))
 				* Costants.STICK_LENGTH;
-		Double endY = p.getY() + Math.cos(Math.toRadians(heading))
+		Double endY = t.getPosition().getY() + Math.cos(Math.toRadians(heading))
 				* Costants.STICK_LENGTH;
 
 		if (!safeBF.contains(endX, endY)) {

@@ -2,8 +2,10 @@ package org.pattern.utils;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.text.DecimalFormat;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.Formatter;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -12,6 +14,7 @@ import org.pattern.movement.Projection;
 import org.pattern.movement.Projection.tickProjection;
 import org.pattern.radar.GBulletFiredEvent;
 import org.robot.Enemy;
+import org.robot.Rocky;
 
 import com.sun.org.apache.bcel.internal.Constants;
 
@@ -213,18 +216,53 @@ public class Utils {
 		Point2D myPos = new Point2D.Double(robot.getX(), robot.getY());
 		double maxDistance = Math.max(robot.getBattleFieldHeight(), robot.getBattleFieldWidth());
 
-		setMeasure(Math.abs(robot.getVelocity()), 8., 0, ret);
-		setMeasure(Math.abs(enemy.getVelocity()), 8., Costants.SEG_BITS_VARIABLE, ret);
+//		setMeasure(Math.abs(robot.getVelocity()), 8., 0, ret);
+//		setMeasure(Math.abs(enemy.getVelocity()), 8., Costants.SEG_BITS_VARIABLE, ret);
 		//setMeasure(wave.getVelocity(), 20., Costants.SEG_BITS_VARIABLE*2, ret);
-		setMeasure(enemy.getPosition().distance(robot.getX(), robot.getY()), maxDistance, Costants.SEG_BITS_VARIABLE*2, ret);
-		setMeasure(getDistanceFromWall(enemy.getPosition(), robot.getBattleFieldWidth(), robot.getBattleFieldHeight()), maxDistance, Costants.SEG_BITS_VARIABLE*3, ret);
-		setMeasure(getLateralVelocity(myPos, enemy.getPosition(), enemy.getVelocity(), enemy.getHeading()), 90., Costants.SEG_BITS_VARIABLE*4, ret);
-		setMeasure(getLateralVelocity(enemy.getPosition(), myPos, robot.getVelocity(), robot.getHeading()), 90., Costants.SEG_BITS_VARIABLE*5, ret);
-		setMeasure(enemy.getEnergy(), 100., Costants.SEG_BITS_VARIABLE*6, ret);
-		setMeasure(enemy.getLastTimeDecel(), 50., Costants.SEG_BITS_VARIABLE*7, ret);
+		int bits = 0;
+		setMeasure(enemy.getPosition().distance(robot.getX(), robot.getY()), maxDistance, bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(getDistanceFromWall(enemy.getPosition(), robot.getBattleFieldWidth(), robot.getBattleFieldHeight()), maxDistance, bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(getLateralVelocity(myPos, enemy.getPosition(), enemy.getVelocity(), enemy.getHeading()), 8., bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(getLateralVelocity(enemy.getPosition(), myPos, robot.getVelocity(), robot.getHeading()), 8., bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(enemy.getEnergy(), 100., bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(enemy.getLastTimeDecel(), 30., bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(((Rocky)robot).o_lastTimeDecel, 30., bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
 		
 		return ret;
 	}
+	
+	public static BitSet makeSnapshot(double distance, double distanceFromWall, double enemyLateralVel, double myLateralVelo, double energy, double lastTimeDecel, double myTimedecel) {
+		BitSet ret = new BitSet();
+
+		
+
+		//setMeasure(wave.getVelocity(), 20., Costants.SEG_BITS_VARIABLE*2, ret);
+		int bits = 0;
+		setMeasure(distance, Math.sqrt(800*800+600*600), bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(distanceFromWall, Math.sqrt(800*800+600*600), bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+//		setMeasure(enemyLateralVel, 8., bits, ret);
+//		bits+=Costants.SEG_BITS_VARIABLE;
+//		setMeasure(myLateralVelo, 8., bits, ret);
+//		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(energy, 100., bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(lastTimeDecel, 30., bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		setMeasure(myTimedecel, 30., bits, ret);
+		bits+=Costants.SEG_BITS_VARIABLE;
+		
+		return ret;
+	}
+	
 	
 	public static double getDanger(double gf, double absMae, VisitCountStorageSegmented storage, GBulletFiredEvent wave) {
 		List<BitSet> Allnearest = storage.getNearest(wave.getSnapshot());
@@ -234,6 +272,16 @@ public class Utils {
 		for (int i = 0; i < k; i++) {
 			nearest.add(Allnearest.get(i));
 		}
+		
+		DecimalFormat f = new DecimalFormat("#0.00");
+		System.out.print("GF: ");
+		for (int i = 0; i < k; i++) {
+			double _gf = storage.getGF(nearest.get(i));
+			double a = _gf * absMae;
+			System.out.print(f.format(_gf) + "("+f.format(a)+") ");
+		}
+		
+	
 		double botWidth = Math.toDegrees(36/wave.getFiringPosition().distance(wave.getTargetPosition()));
 		double angle = gf * absMae;
 		double d = 0;
@@ -242,8 +290,10 @@ public class Utils {
 			double thisAngle =  thisGf * absMae;
 			
 			double ux = (angle - thisAngle) / botWidth;
-			d += Math.pow(Math.E, - 0.5 * ux * ux)/storage.distance(bitSet, wave.getSnapshot());
+			d += Math.pow(Math.E, - 0.5 * ux * ux)/(1 + storage.distance(bitSet, wave.getSnapshot()));
 		}
+		
+		System.out.println("D "+f.format(gf)+"("+f.format(gf*absMae)+") "+f.format(d));
 		return d;
 	}
 	

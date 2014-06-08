@@ -65,6 +65,14 @@ public class Projection {
 	private double distance;
 	private double distanceRemaining;
 	
+	public double getDistanceRemaining() {
+		return distanceRemaining;
+	}
+
+	public void setDistanceRemaining(double distanceRemaining) {
+		this.distanceRemaining = distanceRemaining;
+	}
+
 	public double getWantedHeading() {
 		return wantedHeading;
 	}
@@ -224,7 +232,7 @@ public class Projection {
 	}
 
 	public tickProjection projectNextTick() {
-		double a,v,h;
+		double v,h;
 		Point2D position;
 		
 		tickProjection projection = new tickProjection();
@@ -235,15 +243,7 @@ public class Projection {
 		position = lastProjection.getPosition();
 		v = lastProjection.getVelocity();
 		
-		if (v == 0 || wantedDirection * v > 0) { 
-			a = wantedDirection * Rules.ACCELERATION;
-		}
-		else if (wantedDirection == 0){
-			a = 0;
-		}
-		else {
-			a = wantedDirection * Rules.DECELERATION;
-		}
+
 		//updating heading
 		h = lastProjection.getHeading();
 		
@@ -283,7 +283,13 @@ public class Projection {
 		//updating position
 		double hRad = Math.toRadians(h);
 		position = new Point2D.Double(lastProjection.getPosition().getX() + (v * Math.cos(Math.PI/2 - hRad)), lastProjection.getPosition().getY() + (v *Math.sin(Math.PI/2 - hRad)));
-		distanceRemaining -= v;
+		double oldDistance = distanceRemaining;
+		if (Math.abs(distanceRemaining) > 0)
+			distanceRemaining -= v;
+		
+		if (oldDistance * distanceRemaining < 0) {
+			distanceRemaining = 0.;
+		}
 		//todo check collision
 		
 		projection.setHeading(h);

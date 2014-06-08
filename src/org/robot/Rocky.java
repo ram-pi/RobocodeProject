@@ -61,7 +61,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 	List<GBulletFiredEvent> o_firedBullets;
 	private static VisitCountStorageSegmented o_riskStorage;
 	private static VisitCountStorageSegmented o_gfStorage;
-
+	public long o_lastTimeDecel = 0;
+	private double o_lastVelocity;
 	Point2D o_toGo = null;
 	boolean o_pointsSurfing = false;
 	boolean o_orbitSurfing = true;
@@ -104,11 +105,14 @@ public class Rocky extends AdvancedRobot implements Observer{
 		setBulletColor(Color.red);
 		setAdjustRadarForRobotTurn(true);
 		setAdjustGunForRobotTurn(true);
-		setAdjustRadarForRobotTurn(true);
 
+		setAdjustRadarForGunTurn(true);
+		
 		o_maxDistance = Math.sqrt(getBattleFieldWidth() * getBattleFieldWidth()
 				+ getBattleFieldHeight() * getBattleFieldHeight());
-
+		
+		o_lastVelocity = getVelocity();
+		
 		if (meele) {
 			m_move = new Move(this);
 		} 
@@ -141,7 +145,11 @@ public class Rocky extends AdvancedRobot implements Observer{
 	private void doOvoMovement() {
 		double _ahead = 0;
 		double _turnRight = 0;
-
+		if (Math.abs(getVelocity()) < Math.abs(o_lastVelocity))
+			o_lastTimeDecel = 0;
+		else
+			o_lastTimeDecel++;
+		
 		Point2D myPosition = new Point2D.Double(getX(), getY());
 		GBulletFiredEvent nearestWave = o_waves.getNearestWave();
 		double angle = 0;
@@ -462,7 +470,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 			setTurnGunRight(robocode.util.Utils.normalRelativeAngleDegrees(bearing
 					- getGunHeading()));
 
-			if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < Costants.GUN_MAX_DISPLACEMENT_DEGREE) {
+			if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < Costants.GUN_MAX_DISPLACEMENT_DEGREE && 
+					e.getEnergy()/getEnergy() < Costants.ENERGY_RATIO_DONT_FIRE && e.getDistance() < Costants.DISTANCE_DONT_FIRE) {
 				GBulletFiredEvent bullet = new GBulletFiredEvent();
 
 				bullet.setEnergy(firePower);
@@ -626,6 +635,14 @@ public class Rocky extends AdvancedRobot implements Observer{
 
 		for (int orbitDirection = -1; orbitDirection < 2; orbitDirection += 2) { 
 			angle = org.pattern.utils.Utils.absBearingPerpendicular(myPos, e.getPosition(), orbitDirection);
+			
+			if (e.getEnergy()/getEnergy() > Costants.ENERGY_RATIO_TAKE_DISTANCE && e.getDistance() < Costants.MIN_DISTANCE) {
+				angle -= orbitDirection * Costants.DISTANCE_OFFSET;
+			}
+			else if (getEnergy()/e.getEnergy() > Costants.ENERGY_RATIO_GO_NEAR && e.getDistance() > Costants.MAX_DISTANCE) {
+				angle += orbitDirection * Costants.DISTANCE_OFFSET;
+			}
+			
 			m.move(angle, getHeading());
 			double risk = o_surfWave(wave, m.turnRight, m.ahead);
 			if (risk < minRisk) {
