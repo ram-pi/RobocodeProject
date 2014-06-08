@@ -256,8 +256,6 @@ public class PositionFinder {
 		return danger;
 	}
 	
-	
-
 	private boolean inBattlefield(java.awt.geom.Point2D.Double tmp) {
 		if (tmp.getX() < 50 || tmp.getX() > robot.getBattleFieldWidth()-50)
 			return false;
