@@ -215,7 +215,7 @@ public class Utils {
 
 		
 		Point2D myPos = new Point2D.Double(robot.getX(), robot.getY());
-		double maxDistance = Math.max(robot.getBattleFieldHeight(), robot.getBattleFieldWidth());
+		double maxDistance = Costants.MAX_DISTANCE;
 
 //		setMeasure(Math.abs(robot.getVelocity()), 8., 0, ret);
 //		setMeasure(Math.abs(enemy.getVelocity()), 8., Costants.SEG_BITS_VARIABLE, ret);
@@ -246,9 +246,9 @@ public class Utils {
 
 		//setMeasure(wave.getVelocity(), 20., Costants.SEG_BITS_VARIABLE*2, ret);
 		int bits = 0;
-		setMeasure(distance, Math.sqrt(800*800+600*600), bits, ret);
+		setMeasure(distance, Costants.BITSET_MAX_DISTANCE, bits, ret);
 		bits+=Costants.SEG_BITS_VARIABLE;
-		setMeasure(distanceFromWall, Math.sqrt(800*800+600*600), bits, ret);
+		setMeasure(distanceFromWall, Costants.BITSET_MAX_DISTANCE, bits, ret);
 		bits+=Costants.SEG_BITS_VARIABLE;
 //		setMeasure(enemyLateralVel, 8., bits, ret);
 //		bits+=Costants.SEG_BITS_VARIABLE;
@@ -283,17 +283,17 @@ public class Utils {
 		List<BitSet> Allnearest = storage.getNearest(wave.getSnapshot());
 		
 		List<BitSet> nearest = new LinkedList<>();
-		int k = Math.min(Costants.KNN_K, Allnearest.size());
+		int k = Math.min(Costants.SURFING_KNN_K, Allnearest.size());
 		for (int i = 0; i < k; i++) {
 			nearest.add(Allnearest.get(i));
 		}
 		
 		DecimalFormat f = new DecimalFormat("#0.00");
-		System.out.print("GF: ");
+//		System.out.print("GF: ");
 		for (int i = 0; i < k; i++) {
 			double _gf = storage.getGF(nearest.get(i));
 			double a = _gf * absMae;
-			System.out.print(f.format(_gf) + "("+f.format(a)+") ");
+//			sSystem.out.print(f.format(_gf) + "("+f.format(a)+") ");
 		}
 		
 	
@@ -308,7 +308,7 @@ public class Utils {
 			d += Math.pow(Math.E, - 0.5 * ux * ux)/(1 + storage.distance(bitSet, wave.getSnapshot()));
 		}
 		
-		System.out.println("D "+f.format(gf)+"("+f.format(gf*absMae)+") "+f.format(d));
+//		System.out.println("D "+f.format(gf)+"("+f.format(gf*absMae)+") "+f.format(d));
 		return d;
 	}
 	
@@ -407,7 +407,7 @@ public class Utils {
 
 
 		List<BitSet> nearest = new LinkedList<>();
-		int k = Math.min(Costants.KNN_K, Allnearest.size());
+		int k = Math.min(Costants.GF_KNN_K, Allnearest.size());
 		for (int i = 0; i < k; i++) {
 			nearest.add(Allnearest.get(i));
 		}

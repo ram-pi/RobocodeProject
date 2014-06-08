@@ -407,7 +407,8 @@ public class Rocky extends AdvancedRobot implements Observer{
 			double gf = firingOffset > 0 ? firingOffset / mae : -firingOffset
 					/ mae;
 
-			m_storages.get(event.getBullet().getName()).visit(gf);
+			if (m_storages.get(event.getBullet().getName()) != null)
+				m_storages.get(event.getBullet().getName()).visit(gf);
 			m_waves.getWaves().remove(hittedWave);
 			return;
 		} else {
