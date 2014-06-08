@@ -209,7 +209,7 @@ public class PositionFinder {
 		while (i < attempt 
 				&& !enemies.isEmpty()) {
 			i++;
-			Double randomDistance = Math.min(e.getDistance()*0.8,100) + Math.random()*100;
+			Double randomDistance = Math.min(e.getDistance()*0.8,60) + Math.random()*100;
 
 			Point2D.Double tmp = Utils.calcPoint(myPos, randomDistance, generateRandomAngle());
 			if (!inBattlefield(tmp))
@@ -231,9 +231,9 @@ public class PositionFinder {
 		}
 		((Rocky)robot).m_maxRiskDebug = maxRisk;
 		((Rocky)robot).m_minRiskDebug = minimumRisk;
-		robot.out.println("MaxRisk :" + maxRisk);
-		robot.out.println("MinRisk :" + minimumRisk);
-		robot.out.println("Avg :" + average/counter);
+//		robot.out.println("MaxRisk :" + maxRisk);
+//		robot.out.println("MinRisk :" + minimumRisk);
+//		robot.out.println("Avg :" + average/counter);
 		lastLastPosition = lastPosition;
 		lastPosition = ret;
 		return ret;
@@ -258,7 +258,7 @@ public class PositionFinder {
 			Enemy e = enemies.get(key);
 
 			//danger += 0.1 / toEval.distance(field.getCenterX(), field.getCenterY());
-			danger += (20 - others)/toEval.distance(e.getPosition());
+			danger += (10 - others)/toEval.distance(e.getPosition());
 			//danger += 1 / toEval.distance(actualPosition);
 
 		}
